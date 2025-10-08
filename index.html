@@ -45,7 +45,6 @@ input[type="file"], input[type="time"], input[type="text"], input[type="color"] 
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<!-- Leaflet-GPX wird nicht mehr benötigt / nicht eingebunden, wir parsen GPX manuell -->
 
 <script>
 // --- Karte ---
@@ -84,109 +83,36 @@ let colorIndex=0;
 const slider=document.getElementById("timeSlider");
 const timeLabel=document.getElementById("timeLabel");
 
-// --- Helper ---
-function parsePace(p){
-  if(!p || p === "--:--") return null;
-  const parts = p.split(":").map(Number);
-  if(parts.length === 1) return parts[0]*60;
-  const [m,s] = parts;
-  return m*60 + (isNaN(s)?0:s);
-}
-function paceToMetersPerMinute(p){ const sec=parsePace(p); if(sec===null||sec===0) return null; return 1000/(sec/60); } // m/min
+// --- Helperfunktionen ---
+function parsePace(p){ if(!p || p==="--:--") return null; const parts=p.split(":").map(Number); if(parts.length===1) return parts[0]*60; return parts[0]*60+parts[1]; }
+function paceToMetersPerMinute(p){ const sec=parsePace(p); if(sec===null||sec===0) return null; return 1000/(sec/60); }
 function totalLength(latlngs){ let d=0; for(let i=1;i<latlngs.length;i++) d+=latlngs[i-1].distanceTo(latlngs[i]); return d; }
-function interpolatePoint(latlngs,f){
-  if(!latlngs || latlngs.length===0) return null;
-  if(f<=0) return latlngs[0];
-  if(f>=1) return latlngs[latlngs.length-1];
-  const total=totalLength(latlngs);
-  if(total===0) return latlngs[0];
-  const target=total*f;
-  let dist=0;
-  for (let i=1;i<latlngs.length;i++){
-    const seg=latlngs[i-1].distanceTo(latlngs[i]);
-    if(dist+seg>=target){
-      const r=(target-dist)/seg;
-      return L.latLng(
-        latlngs[i-1].lat + (latlngs[i].lat - latlngs[i-1].lat)*r,
-        latlngs[i-1].lng + (latlngs[i].lng - latlngs[i-1].lng)*r
-      );
-    }
-    dist+=seg;
-  }
-  return latlngs[latlngs.length-1];
-}
-function getSubsegment(latlngs,startFrac,endFrac){
-  if(!latlngs || latlngs.length===0) return [];
-  const total=totalLength(latlngs);
-  if(total===0) return [latlngs[0]];
-  const startT=total*startFrac;
-  const endT=total*endFrac;
-  let dist=0;
-  const pts=[];
-  let startAdded=false;
-  for(let i=1;i<latlngs.length;i++){
-    const seg=latlngs[i-1].distanceTo(latlngs[i]);
-    const segStart=dist;
-    const segEnd=dist+seg;
-    if(!startAdded && segEnd>=startT){
-      const r=(startT-segStart)/seg;
-      pts.push(L.latLng(
-        latlngs[i-1].lat + (latlngs[i].lat - latlngs[i-1].lat)*r,
-        latlngs[i-1].lng + (latlngs[i].lng - latlngs[i-1].lng)*r
-      ));
-      startAdded=true;
-    }
-    if(segEnd>startT && segStart<endT) pts.push(latlngs[i]);
-    if(segEnd>=endT){
-      const r=(endT-segStart)/seg;
-      pts.push(L.latLng(
-        latlngs[i-1].lat + (latlngs[i].lat - latlngs[i-1].lat)*r,
-        latlngs[i-1].lng + (latlngs[i].lng - latlngs[i-1].lng)*r
-      ));
-      break;
-    }
-    dist+=seg;
-  }
-  return pts;
-}
+function interpolatePoint(latlngs,f){ if(!latlngs||latlngs.length===0) return null; if(f<=0) return latlngs[0]; if(f>=1) return latlngs[latlngs.length-1]; const total=totalLength(latlngs); let dist=0; for(let i=1;i<latlngs.length;i++){ const seg=latlngs[i-1].distanceTo(latlngs[i]); if(dist+seg>=total*f){ const r=(total*f-dist)/seg; return L.latLng(latlngs[i-1].lat+(latlngs[i].lat-latlngs[i-1].lat)*r, latlngs[i-1].lng+(latlngs[i].lng-latlngs[i-1].lng)*r); } dist+=seg; } return latlngs[latlngs.length-1]; }
+function getSubsegment(latlngs,startFrac,endFrac){ if(!latlngs||latlngs.length===0) return []; const total=totalLength(latlngs); let dist=0; const pts=[]; let startAdded=false; for(let i=1;i<latlngs.length;i++){ const seg=latlngs[i-1].distanceTo(latlngs[i]); const segStart=dist; const segEnd=dist+seg; if(!startAdded && segEnd>=total*startFrac){ const r=(total*startFrac-segStart)/seg; pts.push(L.latLng(latlngs[i-1].lat+(latlngs[i].lat-latlngs[i-1].lat)*r, latlngs[i-1].lng+(latlngs[i].lng-latlngs[i-1].lng)*r)); startAdded=true; } if(segEnd>total*startFrac && segStart<total*endFrac) pts.push(latlngs[i]); if(segEnd>=total*endFrac){ const r=(total*endFrac-segStart)/seg; pts.push(L.latLng(latlngs[i-1].lat+(latlngs[i].lat-latlngs[i-1].lat)*r, latlngs[i-1].lng+(latlngs[i].lng-latlngs[i-1].lng)*r)); break; } dist+=seg; } return pts; }
 function timeToMinutes(t){ if(!t) return null; const [h,m]=t.split(":").map(Number); return h*60+m; }
 function minutesToTime(m){ const h=Math.floor(m/60); const mm=m%60; return `${h.toString().padStart(2,'0')}:${mm.toString().padStart(2,'0')}`; }
 
-// --- POI Popup ---
-function showDistancesToPoi(poi, marker) {
-  const poiLatLng = L.latLng(poi.coords);
-  let info = `<b>${poi.name}</b><br>${poi.description}<hr>`;
-  let hasRunner = false;
+// --- POI Marker ---
+function showDistancesToPoi(poi, marker){
+  const poiLatLng=L.latLng(poi.coords);
+  let info=`<b>${poi.name}</b><br>${poi.description}<hr>`;
+  let hasRunner=false;
 
-  tracks.forEach(track => {
-    if (!track.trackPoints || !track.startTime || !track.endTime || !track.fastSpeed || !track.slowSpeed) return;
-
-    let closestDist = Infinity;
-    let distAlongTrack = 0;
-    let distSoFar = 0;
+  tracks.forEach(track=>{
+    if(!track.trackPoints||!track.startTime||!track.endTime||!track.fastSpeed||!track.slowSpeed) return;
+    let closestDist=Infinity; let distAlongTrack=0; let distSoFar=0;
     for(let i=1;i<track.trackPoints.length;i++){
       const p1=track.trackPoints[i-1], p2=track.trackPoints[i], segDist=p1.distanceTo(p2);
-      // projektion wäre präziser, aber einfacher: min distance to endpoints of segment
-      const d1 = p1.distanceTo(poiLatLng);
-      const d2 = p2.distanceTo(poiLatLng);
-      const minDist = Math.min(d1,d2);
-      if(minDist < closestDist){
-        closestDist=minDist;
-        distAlongTrack = distSoFar + (minDist===d1?0:segDist);
-      }
+      const minDist=Math.min(p1.distanceTo(poiLatLng), p2.distanceTo(poiLatLng));
+      if(minDist<closestDist){ closestDist=minDist; distAlongTrack=distSoFar+(minDist===p1.distanceTo(poiLatLng)?0:segDist); }
       distSoFar+=segDist;
     }
-
     if(closestDist>30) return;
     hasRunner=true;
-
-    const tStart = timeToMinutes(track.startTime);
-    const fastArrival = minutesToTime(Math.floor(tStart + distAlongTrack / track.fastSpeed));
-    const slowArrival = minutesToTime(Math.floor(tStart + distAlongTrack / track.slowSpeed));
-
-    info += `<b>${track.name||"Unbenannte Strecke"}</b><br>`;
-    info += `Erster Läufer: ${fastArrival} Uhr<br>`;
-    info += `Letzter Läufer: ${slowArrival} Uhr<br><br>`;
+    const tStart=timeToMinutes(track.startTime);
+    const fastArrival=minutesToTime(Math.floor(tStart+distAlongTrack/track.fastSpeed));
+    const slowArrival=minutesToTime(Math.floor(tStart+distAlongTrack/track.slowSpeed));
+    info+=`<b>${track.name||"Unbenannte Strecke"}</b><br>Erster Läufer: ${fastArrival} Uhr<br>Letzter Läufer: ${slowArrival} Uhr<br><br>`;
   });
 
   if(!hasRunner) info+="Keine Strecke führt hier vorbei.";
@@ -195,14 +121,13 @@ function showDistancesToPoi(poi, marker) {
   marker._popup.setLatLng(marker.getLatLng()).setContent(info).openOn(map);
 }
 
-// --- POI Marker setzen ---
-pois.forEach(poi => {
-  const marker = L.marker(poi.coords, { icon: poiIcon }).addTo(map);
+pois.forEach(poi=>{
+  const marker=L.marker(poi.coords,{icon:poiIcon}).addTo(map);
   marker.bindTooltip(poi.name);
-  marker.on("click", () => showDistancesToPoi(poi, marker));
+  marker.on("click",()=>showDistancesToPoi(poi,marker));
 });
 
-// --- Slider & Marker ---
+// --- Slider & Update ---
 function updateSliderRange(){
   const validTracks=tracks.filter(t=>t.startTime && t.endTime);
   if(validTracks.length===0){ document.getElementById("sliderContainer").style.display="none"; return; }
@@ -232,38 +157,29 @@ function updateMarkers(){
     const slowDist=Math.max(Math.min(track.slowSpeed*minsSinceStart,track.totalDist),0);
     const fastFrac= track.totalDist>0 ? fastDist/track.totalDist : 0;
     const slowFrac= track.totalDist>0 ? slowDist/track.totalDist : 0;
-
     const fastPos=interpolatePoint(track.trackPoints,fastFrac);
     const slowPos=interpolatePoint(track.trackPoints,slowFrac);
-
     if(track.fastMarker) track.fastMarker.setLatLng(fastPos);
     if(track.slowMarker) track.slowMarker.setLatLng(slowPos);
-
     if(track.redSegment) { map.removeLayer(track.redSegment); track.redSegment=null; }
     const subPoints=getSubsegment(track.trackPoints,Math.min(fastFrac,slowFrac),Math.max(fastFrac,slowFrac));
     if(subPoints.length>0) track.redSegment=L.polyline(subPoints,{color:"red",weight:6}).addTo(map);
   });
 }
 
-// --- Pace Mask ---
+// --- Pace Mask Helper ---
 function initPaceField(input){
   input.value="--:--";
   input.addEventListener("focus",()=>{ if(input.value==="--:--") input.value=""; });
   input.addEventListener("blur",()=>{ if(input.value==="") input.value="--:--"; });
-  input.addEventListener("input",()=>{
-    let val=input.value.replace(/\D/g,'').slice(0,4);
-    if(val.length>2) val=val.slice(0,2)+":"+val.slice(2);
-    input.value=val;
-  });
+  input.addEventListener("input",()=>{ let val=input.value.replace(/\D/g,'').slice(0,4); if(val.length>2) val=val.slice(0,2)+":"+val.slice(2); input.value=val; });
 }
 
-// --- Track hinzufügen / laden ---
+// --- Track Form / Add / Delete ---
 function addTrackForm(){
   const trackList = document.getElementById("trackList");
   const trackDiv = document.createElement("div");
   trackDiv.className = "track";
-
-  // Neue Farbvergabe basierend auf aktueller Reihenfolge
   const existingTracks = trackList.querySelectorAll(".track");
   const color = predefinedColors[existingTracks.length % predefinedColors.length];
 
@@ -285,7 +201,6 @@ function addTrackForm(){
       <button class="resetBtn">Reset</button>
     </div>
   `;
-
   trackList.appendChild(trackDiv);
 
   const header = trackDiv.querySelector(".track-header");
@@ -294,142 +209,63 @@ function addTrackForm(){
   const deleteBtn = header.querySelector(".deleteTrackBtn");
   const colorPicker = trackDiv.querySelector(".trackColor");
   const colorIndicator = trackDiv.querySelector(".colorIndicator");
-
   initPaceField(trackDiv.querySelector(".fastPace"));
   initPaceField(trackDiv.querySelector(".slowPace"));
 
   header.addEventListener("click",()=>{ const open=body.style.display==="block"; body.style.display=open?"none":"block"; toggle.innerHTML=open?"&#9654;":"&#9660;"; });
-
-// Löschen-Button
-deleteBtn.addEventListener("click", (e) => {
-  e.stopPropagation();
-
-  if (trackDiv.trackObj) {
-    // Alle Layer von der Karte entfernen
-    ["fullTrackLayer", "redSegment", "fastMarker", "slowMarker", "gpxLayer"].forEach(key => {
-      if (trackDiv.trackObj[key]) map.removeLayer(trackDiv.trackObj[key]);
-    });
-
-    // Track aus globalem Array entfernen
-    tracks = tracks.filter(t => t.id !== trackDiv.trackObj.id);
-  }
-
-  trackDiv.remove();
-  updateSliderRange();
-
-  // --- Farben nach Löschung neu zuordnen ---
-  const allTracks = document.querySelectorAll("#trackList .track");
-  allTracks.forEach((div, i) => {
-    const newColor = predefinedColors[i % predefinedColors.length];
-    const colorPicker = div.querySelector(".trackColor");
-    const colorIndicator = div.querySelector(".colorIndicator");
-    colorPicker.value = newColor;
-    colorIndicator.style.background = newColor;
-
-    // Falls Track schon geladen ist: Farbe in der Karte & im Objekt anpassen
-    if (div.trackObj) {
-      div.trackObj.color = newColor;
-      if (div.trackObj.fullTrackLayer) div.trackObj.fullTrackLayer.setStyle({ color: newColor });
-    }
+  deleteBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if(trackDiv.trackObj){ ["fullTrackLayer","redSegment","fastMarker","slowMarker"].forEach(k=>{ if(trackDiv.trackObj[k]) map.removeLayer(trackDiv.trackObj[k]); }); tracks = tracks.filter(t=>t.id!==trackDiv.trackObj.id); }
+    trackDiv.remove(); updateSliderRange();
+    const allTracks = document.querySelectorAll("#trackList .track");
+    allTracks.forEach((div,i)=>{ const newColor=predefinedColors[i%predefinedColors.length]; const cp=div.querySelector(".trackColor"); const ci=div.querySelector(".colorIndicator"); cp.value=newColor; ci.style.background=newColor; if(div.trackObj) { div.trackObj.color=newColor; if(div.trackObj.fullTrackLayer) div.trackObj.fullTrackLayer.setStyle({color:newColor}); } });
   });
-});
-
-
   colorPicker.addEventListener("input",()=>{ colorIndicator.style.background=colorPicker.value; if(trackDiv.trackObj?.fullTrackLayer) trackDiv.trackObj.fullTrackLayer.setStyle({color:colorPicker.value}); });
-
   trackDiv.querySelector(".loadBtn").addEventListener("click",()=>loadTrack(trackDiv));
-  trackDiv.querySelector(".resetBtn").addEventListener("click",()=>{
-    trackDiv.querySelector(".startTime").value="";
-    trackDiv.querySelector(".endTime").value="";
-    trackDiv.querySelector(".fastPace").value="--:--";
-    trackDiv.querySelector(".slowPace").value="--:--";
-    if(trackDiv.trackObj){
-      trackDiv.trackObj.startTime=null;
-      trackDiv.trackObj.endTime=null;
-      trackDiv.trackObj.fastSpeed=null;
-      trackDiv.trackObj.slowSpeed=null;
-      ["fullTrackLayer","redSegment","fastMarker","slowMarker"].forEach(key=>{
-        if(trackDiv.trackObj[key]) { map.removeLayer(trackDiv.trackObj[key]); trackDiv.trackObj[key]=null; }
-      });
-    }
-    updateSliderRange();
-  });
+  trackDiv.querySelector(".resetBtn").addEventListener("click",()=>{ trackDiv.querySelector(".startTime").value=""; trackDiv.querySelector(".endTime").value=""; trackDiv.querySelector(".fastPace").value="--:--"; trackDiv.querySelector(".slowPace").value="--:--"; if(trackDiv.trackObj){ trackDiv.trackObj.startTime=null; trackDiv.trackObj.endTime=null; trackDiv.trackObj.fastSpeed=null; trackDiv.trackObj.slowSpeed=null; ["fullTrackLayer","redSegment","fastMarker","slowMarker"].forEach(k=>{ if(trackDiv.trackObj[k]) { map.removeLayer(trackDiv.trackObj[k]); trackDiv.trackObj[k]=null; } }); } updateSliderRange(); });
 }
 
-// --- GPX manuell parsen & Track laden (kein Leaflet-GPX) ---
 function loadTrack(trackDiv){
   const file = trackDiv.querySelector(".fileInput").files[0];
   if(!file) return alert("Bitte GPX-Datei auswählen.");
   const color = trackDiv.querySelector(".trackColor").value;
   const reader = new FileReader();
-
   reader.onload = e => {
     const gpxText = e.target.result;
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(gpxText, "text/xml");
-
-    // trkpt bevorzugen, fallback auf rtept
     let nodes = xmlDoc.getElementsByTagName("trkpt");
-    if(!nodes || nodes.length === 0) nodes = xmlDoc.getElementsByTagName("rtept");
-    if(!nodes || nodes.length === 0){
-      alert("Keine Trackpunkte gefunden (trkpt/rtept).");
-      return;
-    }
-
-    // Erzeuge LatLng-Array (L.latLng-Objekte)
-    const latlngs = Array.from(nodes).map(n => L.latLng(parseFloat(n.getAttribute("lat")), parseFloat(n.getAttribute("lon"))));
-
-    if(latlngs.length === 0){
-      alert("Keine gültigen Koordinaten in der GPX-Datei.");
-      return;
-    }
-
-    const fastPaceVal = trackDiv.querySelector(".fastPace").value;
-    const slowPaceVal = trackDiv.querySelector(".slowPace").value;
-
+    if(!nodes || nodes.length===0) nodes = xmlDoc.getElementsByTagName("rtept");
+    if(!nodes || nodes.length===0){ alert("Keine Trackpunkte gefunden (trkpt/rtept)."); return; }
+    const latlngs = Array.from(nodes).map(n=>L.latLng(parseFloat(n.getAttribute("lat")), parseFloat(n.getAttribute("lon"))));
+    if(latlngs.length===0){ alert("Keine gültigen Koordinaten in der GPX-Datei."); return; }
+    const fastPaceVal=trackDiv.querySelector(".fastPace").value;
+    const slowPaceVal=trackDiv.querySelector(".slowPace").value;
     const trackObj = {
-      id: Date.now() + Math.random(),
+      id: Date.now()+Math.random(),
       trackPoints: latlngs,
       totalDist: totalLength(latlngs),
       color: color,
-      startTime: trackDiv.querySelector(".startTime").value || null,
-      endTime: trackDiv.querySelector(".endTime").value || null,
+      startTime: trackDiv.querySelector(".startTime").value||null,
+      endTime: trackDiv.querySelector(".endTime").value||null,
       fastSpeed: fastPaceVal && fastPaceVal!=="--:--"? paceToMetersPerMinute(fastPaceVal) : null,
       slowSpeed: slowPaceVal && slowPaceVal!=="--:--"? paceToMetersPerMinute(slowPaceVal) : null
-      // kein gpxLayer mehr nötig
     };
-
-    // Volle Linie + Marker (nur unsere eigenen Layer)
-    trackObj.fullTrackLayer = L.polyline(latlngs,{color,weight:4}).addTo(map);
-    trackObj.fastMarker = L.circleMarker(latlngs[0],{radius:7,color:'green'}).addTo(map);
-    trackObj.slowMarker = L.circleMarker(latlngs[0],{radius:7,color:'red'}).addTo(map);
-
-    trackDiv.trackObj = trackObj;
-    trackObj.name = trackDiv.querySelector(".trackName").innerText.trim();
-    trackDiv.querySelector(".trackName").dataset.trackId = trackObj.id;
-
+    trackObj.fullTrackLayer=L.polyline(latlngs,{color,weight:4}).addTo(map);
+    trackObj.fastMarker=L.circleMarker(latlngs[0],{radius:7,color:'green'}).addTo(map);
+    trackObj.slowMarker=L.circleMarker(latlngs[0],{radius:7,color:'red'}).addTo(map);
+    trackDiv.trackObj=trackObj;
+    trackObj.name=trackDiv.querySelector(".trackName").innerText.trim();
+    trackDiv.querySelector(".trackName").dataset.trackId=trackObj.id;
     tracks.push(trackObj);
     updateSliderRange();
     map.fitBounds(trackObj.fullTrackLayer.getBounds());
   };
-
   reader.readAsText(file);
 }
 
 document.getElementById("addTrackBtn").addEventListener("click",addTrackForm);
 </script>
+
 </body>
-
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
