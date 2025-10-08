@@ -228,45 +228,71 @@ function addTrackForm(){
 function loadTrack(trackDiv){
   const file = trackDiv.querySelector(".fileInput").files[0];
   if(!file) return alert("Bitte GPX-Datei auswählen.");
+
+  // --- Maximalgröße prüfen ---
+  const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
+  if(file.size > MAX_SIZE){
+    alert("Die Datei ist zu groß. Bitte wähle eine GPX-Datei bis maximal 2 MB.");
+    return;
+  }
+
   const color = trackDiv.querySelector(".trackColor").value;
   const reader = new FileReader();
+
   reader.onload = e => {
     const gpxText = e.target.result;
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(gpxText, "text/xml");
+
+    // trkpt bevorzugen, fallback auf rtept
     let nodes = xmlDoc.getElementsByTagName("trkpt");
-    if(!nodes || nodes.length===0) nodes = xmlDoc.getElementsByTagName("rtept");
-    if(!nodes || nodes.length===0){ alert("Keine Trackpunkte gefunden (trkpt/rtept)."); return; }
-    const latlngs = Array.from(nodes).map(n=>L.latLng(parseFloat(n.getAttribute("lat")), parseFloat(n.getAttribute("lon"))));
-    if(latlngs.length===0){ alert("Keine gültigen Koordinaten in der GPX-Datei."); return; }
-    const fastPaceVal=trackDiv.querySelector(".fastPace").value;
-    const slowPaceVal=trackDiv.querySelector(".slowPace").value;
+    if(!nodes || nodes.length === 0) nodes = xmlDoc.getElementsByTagName("rtept");
+    if(!nodes || nodes.length === 0){
+      alert("Keine Trackpunkte gefunden (trkpt/rtept).");
+      return;
+    }
+
+    const latlngs = Array.from(nodes).map(n => L.latLng(parseFloat(n.getAttribute("lat")), parseFloat(n.getAttribute("lon"))));
+    if(latlngs.length === 0){
+      alert("Keine gültigen Koordinaten in der GPX-Datei.");
+      return;
+    }
+
+    const fastPaceVal = trackDiv.querySelector(".fastPace").value;
+    const slowPaceVal = trackDiv.querySelector(".slowPace").value;
+
     const trackObj = {
-      id: Date.now()+Math.random(),
+      id: Date.now() + Math.random(),
       trackPoints: latlngs,
       totalDist: totalLength(latlngs),
       color: color,
-      startTime: trackDiv.querySelector(".startTime").value||null,
-      endTime: trackDiv.querySelector(".endTime").value||null,
+      startTime: trackDiv.querySelector(".startTime").value || null,
+      endTime: trackDiv.querySelector(".endTime").value || null,
       fastSpeed: fastPaceVal && fastPaceVal!=="--:--"? paceToMetersPerMinute(fastPaceVal) : null,
       slowSpeed: slowPaceVal && slowPaceVal!=="--:--"? paceToMetersPerMinute(slowPaceVal) : null
     };
-    trackObj.fullTrackLayer=L.polyline(latlngs,{color,weight:4}).addTo(map);
-    trackObj.fastMarker=L.circleMarker(latlngs[0],{radius:7,color:'green'}).addTo(map);
-    trackObj.slowMarker=L.circleMarker(latlngs[0],{radius:7,color:'red'}).addTo(map);
-    trackDiv.trackObj=trackObj;
-    trackObj.name=trackDiv.querySelector(".trackName").innerText.trim();
-    trackDiv.querySelector(".trackName").dataset.trackId=trackObj.id;
+
+    trackObj.fullTrackLayer = L.polyline(latlngs,{color,weight:4}).addTo(map);
+    trackObj.fastMarker = L.circleMarker(latlngs[0],{radius:7,color:'green'}).addTo(map);
+    trackObj.slowMarker = L.circleMarker(latlngs[0],{radius:7,color:'red'}).addTo(map);
+
+    trackDiv.trackObj = trackObj;
+    trackObj.name = trackDiv.querySelector(".trackName").innerText.trim();
+    trackDiv.querySelector(".trackName").dataset.trackId = trackObj.id;
+
     tracks.push(trackObj);
     updateSliderRange();
     map.fitBounds(trackObj.fullTrackLayer.getBounds());
   };
+
   reader.readAsText(file);
 }
+
 
 document.getElementById("addTrackBtn").addEventListener("click",addTrackForm);
 </script>
 
 </body>
 </html>
+
 
