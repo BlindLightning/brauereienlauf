@@ -12,7 +12,7 @@
 /* --- Global --- */
 body { 
   margin: 0; 
-  font-family: 'Inter', sans-serif; /* global */
+  font-family: 'Inter', sans-serif; 
   display: flex; 
   height: 100vh; 
   overflow: hidden; 
@@ -30,7 +30,6 @@ body {
   gap: 10px; 
   overflow-y: auto; 
   z-index: 1000; 
-  font-family: 'Inter', sans-serif;
 }
 
 #sidebarLogo { 
@@ -60,7 +59,6 @@ body {
   gap: 5px; 
   border-radius: 6px; 
   color: #000; 
-  font-family: 'Inter', sans-serif;
 }
 
 .track-header .toggleSymbol { color: #000; }
@@ -74,14 +72,12 @@ body {
   border-radius: 4px; 
   background: transparent; 
   color: #000; 
-  font-family: 'Inter', sans-serif; 
 }
 
 .trackName:focus { 
   background: white; 
   color: #000; 
   outline: 2px solid #FF6600; 
-  font-family: 'Inter', sans-serif; 
 }
 
 /* --- Color Indicator & Buttons --- */
@@ -101,7 +97,6 @@ button {
   padding: 6px 10px; 
   cursor: pointer; 
   margin-top: 6px; 
-  font-family: 'Inter', sans-serif; 
 }
 
 button:hover { background: #cc5200; }
@@ -116,7 +111,6 @@ button:hover { background: #cc5200; }
   display: block; 
   font-size: 13px; 
   margin-top: 4px; 
-  font-family: 'Inter', sans-serif; 
 }
 
 input[type="file"],
@@ -124,7 +118,6 @@ input[type="time"],
 input[type="text"],
 input[type="color"] {
   width: 100%;
-  font-family: 'Inter', sans-serif;
   font-size: 14px;
   box-sizing: border-box;
 }
@@ -133,41 +126,37 @@ input[type="color"] {
 #map { flex: 1; position: relative; z-index: 0; }
 
 /* --- Slider Styling --- */
-/* --- Slider Container --- */
 #sliderContainer {
   position: absolute;
   bottom: 0;
   left: 321px;
   right: 0;
-  background: #FCF6EE; /* Hintergrund */
+  background: #FCF6EE;
   padding: 10px;
   box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
   display: flex;
   align-items: center;
   gap: 10px;
   z-index: 2000;
-  font-family: 'Inter', sans-serif;
 }
 
-/* --- Slider selbst --- */
 #timeSlider {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
   height: 6px;
   border-radius: 5px;
-  background: #DED0BA; /* Grundfarbe (nicht aktiver Bereich) */
   outline: none;
   cursor: pointer;
+  --slider-progress: 0%;
 }
 
-/* --- Aktiver Bereich (WebKit-Browser: Chrome, Edge, Safari) --- */
+/* Chrome, Edge, Safari */
 #timeSlider::-webkit-slider-runnable-track {
   height: 6px;
   border-radius: 5px;
-  background: linear-gradient(to right, #7664AA var(--value, 0%), #DED0BA var(--value, 0%));
+  background: linear-gradient(to right, #7664AA var(--slider-progress), #DED0BA var(--slider-progress));
 }
-
 #timeSlider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -177,27 +166,22 @@ input[type="color"] {
   background: #7664AA;
   border: 2px solid #FCF6EE;
   cursor: pointer;
-  margin-top: -6px; /* Thumb mittig auf Track ausrichten */
+  margin-top: -6px;
   transition: background 0.2s;
 }
+#timeSlider::-webkit-slider-thumb:hover { background: #5d4d8a; }
 
-#timeSlider::-webkit-slider-thumb:hover {
-  background: #5d4d8a;
-}
-
-/* --- Firefox --- */
+/* Firefox */
 #timeSlider::-moz-range-track {
-  height: 6px;
-  border-radius: 5px;
   background: #DED0BA;
-}
-
-#timeSlider::-moz-range-progress {
   height: 6px;
   border-radius: 5px;
-  background: #7664AA; /* Fortschritt links vom Thumb */
 }
-
+#timeSlider::-moz-range-progress {
+  background: #7664AA;
+  height: 6px;
+  border-radius: 5px;
+}
 #timeSlider::-moz-range-thumb {
   width: 18px;
   height: 18px;
@@ -207,45 +191,22 @@ input[type="color"] {
   cursor: pointer;
   transition: background 0.2s;
 }
+#timeSlider::-moz-range-thumb:hover { background: #5d4d8a; }
 
-#timeSlider::-moz-range-thumb:hover {
-  background: #5d4d8a;
-}
-
-/* --- Für Firefox: Track --- */
-#timeSlider::-moz-range-track {
-  background: #DED0BA;
-  height: 6px;
-  border-radius: 5px;
-}
-
-
-#timeLabel { 
-  min-width: 80px; 
-  font-weight: bold; 
-  font-family: 'Inter', sans-serif; 
-}
+#timeLabel { min-width: 80px; font-weight: bold; }
 
 /* --- Leaflet Popups / Tooltips --- */
 .leaflet-popup-content,
-.leaflet-tooltip { 
-  font-family: 'Inter', sans-serif; 
-}
+.leaflet-tooltip { font-family: 'Inter', sans-serif; }
 
 /* --- Optional: Alle Texte im Akkordeon und Sidebar Input/Labels --- */
-.track-body * {
-  font-family: 'Inter', sans-serif;
-}
-/* --- Monospaced Zahlen in Inputs, aber Inter-Schrift --- */
+.track-body * { font-family: 'Inter', sans-serif; }
+/* Monospaced Zahlen in Inputs */
 input[type="time"],
-input[type="text"] {
-  font-family: 'Inter', sans-serif;
-  font-variant-numeric: tabular-nums;
-}
+input[type="text"] { font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body>
-
 
 <div id="sidebar">
   <div id="sidebarLogo"><img src="icons/brauereienlauf-sued-logo.svg" alt="Brauereienlauf Logo"></div>
@@ -266,6 +227,17 @@ input[type="text"] {
 // --- Karte ---
 const map = L.map('map').setView([49.9, 11.0],12);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ maxZoom:19, attribution:'© OpenStreetMap-Mitwirkende' }).addTo(map);
+
+// --- Slider Farbupdate (Chrome/Edge/Safari) ---
+const timeSlider = document.getElementById('timeSlider');
+if(timeSlider){
+  const updateSliderColor = () => {
+    const value = (timeSlider.value - timeSlider.min) / (timeSlider.max - timeSlider.min) * 100;
+    timeSlider.style.setProperty('--slider-progress', `${value}%`);
+  };
+  timeSlider.addEventListener('input', updateSliderColor);
+  updateSliderColor();
+}
 
 // --- POIs ---
 const pois = [
