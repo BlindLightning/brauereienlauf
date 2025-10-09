@@ -139,6 +139,12 @@ input[type="color"] {
   gap: 10px;
   z-index: 2000;
 }
+<div id="sliderContainer" style="display:none;">
+  <input type="range" id="timeSlider" step="1" value="0" style="flex:1;">
+  <input type="time" id="timeInput" style="width:100px;">
+  <span id="timeLabel">0:00</span>
+</div>
+
 
 #timeSlider {
   -webkit-appearance: none;
@@ -210,7 +216,7 @@ input[type="text"] { font-variant-numeric: tabular-nums; }
 
 <div id="sidebar">
   <div id="sidebarLogo"><img src="icons/brauereienlauf-sued-logo.svg" alt="Brauereienlauf Logo"></div>
-  <button id="addTrackBtn">Weitere Strecke hinzufügen</button>
+  <button id="addTrackBtn">Strecke hinzufügen</button>
   <div id="trackList"></div>
 </div>
 
@@ -260,6 +266,21 @@ const poiIcon = L.icon({
   iconSize: [32,32],
   iconAnchor: [16,32],
   popupAnchor: [0,-32]
+});
+
+// --- Neue Icons für Läufer ---
+const fastRunnerIcon = L.icon({
+  iconUrl: 'icons/brauereienlauf_gestaltungselemente_maennchen_gruen_rgb.svg',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+  popupAnchor: [0, -12]
+});
+
+const slowRunnerIcon = L.icon({
+  iconUrl: 'icons/brauereienlauf_gestaltungselemente_maennchen_orange_rgb.svg',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+  popupAnchor: [0, -12]
 });
 
 // --- Tracks ---
@@ -523,22 +544,30 @@ function loadTrack(trackDiv){
       slowSpeed: slowPaceVal && slowPaceVal!=="--:--"? paceToMetersPerMinute(slowPaceVal) : null
     };
 
+    // --- Volle Strecke auf Karte ---
     trackObj.fullTrackLayer = L.polyline(latlngs,{color,weight:4}).addTo(map);
-    trackObj.fastMarker = L.circleMarker(latlngs[0],{radius:7,color:'green'}).addTo(map);
-    trackObj.slowMarker = L.circleMarker(latlngs[0],{radius:7,color:'red'}).addTo(map);
 
+    // --- Läufer-Marker hinzufügen ---
+    trackObj.fastMarker = L.marker(latlngs[0], {icon: fastRunnerIcon}).addTo(map);
+    trackObj.slowMarker = L.marker(latlngs[0], {icon: slowRunnerIcon}).addTo(map);
+
+    // TrackObj an TrackDiv binden
     trackDiv.trackObj = trackObj;
     trackObj.name = trackDiv.querySelector(".trackName").innerText.trim();
     trackDiv.querySelector(".trackName").dataset.trackId = trackObj.id;
 
+    // Track zu globalem Array hinzufügen
     tracks.push(trackObj);
+
+    // Slider aktualisieren
     updateSliderRange();
+
+    // Karte auf Track zentrieren
     map.fitBounds(trackObj.fullTrackLayer.getBounds());
   };
 
   reader.readAsText(file);
 }
-
 
 document.getElementById("addTrackBtn").addEventListener("click",addTrackForm);
 </script>
