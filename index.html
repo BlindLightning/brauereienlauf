@@ -61,6 +61,40 @@ body {
   color: #000; 
 }
 
+.track-header {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* 🔹 Zentriert horizontal */
+  gap: 8px; /* etwas Abstand zwischen Farbe & Button */
+}
+
+.colorIndicator,
+.track-header .deleteTrackBtn {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 🔸 spezielles Styling für den Button */
+.track-header .deleteTrackBtn {
+  background: #FF6600;
+  color: #fff;
+  border: none;
+  font-weight: bold;
+  font-size: 14px;
+  line-height: 1;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.track-header .deleteTrackBtn:hover {
+  background: #cc5200;
+}
+
 .track-header .toggleSymbol { color: #000; }
 .track-header:hover { background: #7664AA; }
 .track-header:hover .toggleSymbol { color: #fff; }
@@ -139,12 +173,6 @@ input[type="color"] {
   gap: 10px;
   z-index: 2000;
 }
-<div id="sliderContainer" style="display:none;">
-  <input type="range" id="timeSlider" step="1" value="0" style="flex:1;">
-  <input type="time" id="timeInput" style="width:100px;">
-  <span id="timeLabel">0:00</span>
-</div>
-
 
 #timeSlider {
   -webkit-appearance: none;
@@ -573,3 +601,4 @@ document.getElementById("addTrackBtn").addEventListener("click",addTrackForm);
 </script>
 </body>
 </html>
+
