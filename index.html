@@ -449,12 +449,12 @@ function addTrackForm(predef){
     </div>
     <div class="track-body">
       <label>GPX-Datei: <input type="file" class="gpxFileInput" accept=".gpx"></label>
+      <label>Trackfarbe: <input type="color" class="trackColor" value="${color}"></label>
       <button class="loadGpxBtn" style="background:#FF6600;color:white;border:none;border-radius:4px;margin-top:6px;">Track laden</button>
       <label>Startzeit: <input type="time" class="startTime" value="${predef?.startTime||''}"></label>
       <label>Zielzeit: <input type="time" class="endTime" value="${predef?.endTime||''}"></label>
       <label>Schnellste Pace (min/km): <input type="text" class="fastPace" value="${predef?.fastPace||'--:--'}"></label>
       <label>Langsamste Pace (min/km): <input type="text" class="slowPace" value="${predef?.slowPace||'--:--'}"></label>
-      <label>Trackfarbe: <input type="color" class="trackColor" value="${color}"></label>
       <button class="resetBtn" style="background:#FF6600;color:white;border:none;border-radius:4px;margin-top:6px;">⟳ Zurücksetzen</button>
     </div>`;
   list.appendChild(div);
@@ -491,3 +491,4 @@ predefinedTracks.forEach(t=>addTrackForm(t));
 </script>
 </body>
 </html>
+
