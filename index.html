@@ -254,13 +254,17 @@ input[type="text"] { font-variant-numeric: tabular-nums; }
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
 // --- Karte ---
 const map = L.map('map').setView([49.9, 11.0],12);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ maxZoom:19, attribution:'© OpenStreetMap-Mitwirkende' }).addTo(map);
+L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png',{
+  maxZoom:19,
+  attribution:'© OpenStreetMap-Mitwirkende'
+}).addTo(map);
 
-// --- Slider Farbupdate (Chrome/Edge/Safari) ---
+// --- Slider Farbupdate ---
 const timeSlider = document.getElementById('timeSlider');
 if(timeSlider){
   const updateSliderColor = () => {
@@ -294,95 +298,94 @@ const poiIcon = L.icon({
   popupAnchor: [0,-32]
 });
 
-// --- Neue Icons für Läufer ---
-const fastRunnerIcon = L.icon({
-  iconUrl: 'icons/brauereienlauf_gestaltungselemente_maennchen_gruen_rgb.svg',
-  iconSize: [24, 24],
-  iconAnchor: [12, 12],
-  popupAnchor: [0, -12]
-});
-
-const slowRunnerIcon = L.icon({
-  iconUrl: 'icons/brauereienlauf_gestaltungselemente_maennchen_orange_rgb.svg',
-  iconSize: [24, 24],
-  iconAnchor: [12, 12],
-  popupAnchor: [0, -12]
-});
+// --- Läufer-Icons ---
+const fastRunnerIcon = L.icon({iconUrl:'icons/brauereienlauf_gestaltungselemente_maennchen_gruen_rgb.svg',iconSize:[24,24],iconAnchor:[12,12],popupAnchor:[0,-12]});
+const slowRunnerIcon = L.icon({iconUrl:'icons/brauereienlauf_gestaltungselemente_maennchen_orange_rgb.svg',iconSize:[24,24],iconAnchor:[12,12],popupAnchor:[0,-12]});
 
 // --- Tracks ---
 let tracks=[];
 const predefinedColors=["#36542C","#FF6600","#7664AA","#212121","#DED0BA"];
-let colorIndex=0;
 
-// --- Slider ---
-const slider=document.getElementById("timeSlider");
-const timeLabel=document.getElementById("timeLabel");
+// --- Vordefinierte Strecken ---
+const predefinedTracks = [
+  { name:"Marathon", gpx:"tracks/M.gpx", startTime:"09:00", endTime:"16:00", fastPace:"03:30", slowPace:"09:00" },
+  { name:"Halbmarathon", gpx:"tracks/HM.gpx", startTime:"11:00", endTime:"16:00", fastPace:"03:30", slowPace:"09:00" },
+  { name:"10 km", gpx:"tracks/10k.gpx", startTime:"13:00", endTime:"16:00", fastPace:"03:30", slowPace:"09:00" },
+  { name:"5 km", gpx:"tracks/5km.gpx", startTime:"13:30", endTime:"16:00", fastPace:"03:30", slowPace:"09:00" }
+];
 
-// --- Helperfunktionen ---
-function parsePace(p){ if(!p || p==="--:--") return null; const parts=p.split(":").map(Number); if(parts.length===1) return parts[0]*60; return parts[0]*60+parts[1]; }
-function paceToMetersPerMinute(p){ const sec=parsePace(p); if(sec===null||sec===0) return null; return 1000/(sec/60); }
+// --- Hilfsfunktionen ---
+function parsePace(p){ if(!p || p==="--:--") return null; const parts=p.split(":").map(Number); return parts[0]*60 + (parts[1]||0); }
+function paceToMetersPerMinute(p){ const sec=parsePace(p); return sec?1000/(sec/60):null; }
 function totalLength(latlngs){ let d=0; for(let i=1;i<latlngs.length;i++) d+=latlngs[i-1].distanceTo(latlngs[i]); return d; }
 function interpolatePoint(latlngs,f){ if(!latlngs||latlngs.length===0) return null; if(f<=0) return latlngs[0]; if(f>=1) return latlngs[latlngs.length-1]; const total=totalLength(latlngs); let dist=0; for(let i=1;i<latlngs.length;i++){ const seg=latlngs[i-1].distanceTo(latlngs[i]); if(dist+seg>=total*f){ const r=(total*f-dist)/seg; return L.latLng(latlngs[i-1].lat+(latlngs[i].lat-latlngs[i-1].lat)*r, latlngs[i-1].lng+(latlngs[i].lng-latlngs[i-1].lng)*r); } dist+=seg; } return latlngs[latlngs.length-1]; }
 function getSubsegment(latlngs,startFrac,endFrac){ if(!latlngs||latlngs.length===0) return []; const total=totalLength(latlngs); let dist=0; const pts=[]; let startAdded=false; for(let i=1;i<latlngs.length;i++){ const seg=latlngs[i-1].distanceTo(latlngs[i]); const segStart=dist; const segEnd=dist+seg; if(!startAdded && segEnd>=total*startFrac){ const r=(total*startFrac-segStart)/seg; pts.push(L.latLng(latlngs[i-1].lat+(latlngs[i].lat-latlngs[i-1].lat)*r, latlngs[i-1].lng+(latlngs[i].lng-latlngs[i-1].lng)*r)); startAdded=true; } if(segEnd>total*startFrac && segStart<total*endFrac) pts.push(latlngs[i]); if(segEnd>=total*endFrac){ const r=(total*endFrac-segStart)/seg; pts.push(L.latLng(latlngs[i-1].lat+(latlngs[i].lat-latlngs[i-1].lat)*r, latlngs[i-1].lng+(latlngs[i].lng-latlngs[i-1].lng)*r)); break; } dist+=seg; } return pts; }
-function timeToMinutes(t){ if(!t) return null; const [h,m]=t.split(":").map(Number); return h*60+m; }
+function timeToMinutes(t){ const [h,m]=t.split(":").map(Number); return h*60+m; }
 function minutesToTime(m){ const h=Math.floor(m/60); const mm=m%60; return `${h.toString().padStart(2,'0')}:${mm.toString().padStart(2,'0')}`; }
 
-function showDistancesToPoi(poi, marker){
-  const poiLatLng = L.latLng(poi.coords);
-  let info = `<b>${poi.name}</b><br>${poi.description}<hr>`;
-  let hasRunner = false;
-
-  // Alle aktuell in der Sidebar geladenen Tracks durchgehen
-  document.querySelectorAll("#trackList .track").forEach(trackDiv => {
-    const track = trackDiv.trackObj;
-    if(!track || !track.trackPoints || !track.startTime || !track.endTime || !track.fastSpeed || !track.slowSpeed) return;
-
-    // Aktuellen Namen aus Sidebar holen (dynamisch)
-    const trackNameEl = trackDiv.querySelector(".trackName");
-    const trackName = trackNameEl ? trackNameEl.innerText.trim() || "Neue Strecke" : "Neue Strecke";
-
-    let closestDist = Infinity;
-    let distAlongTrack = 0;
-    let distSoFar = 0;
-
-    for(let i = 1; i < track.trackPoints.length; i++){
-      const p1 = track.trackPoints[i-1], p2 = track.trackPoints[i], segDist = p1.distanceTo(p2);
-      const minDist = Math.min(p1.distanceTo(poiLatLng), p2.distanceTo(poiLatLng));
-      if(minDist < closestDist){
-        closestDist = minDist;
-        distAlongTrack = distSoFar + (minDist === p1.distanceTo(poiLatLng) ? 0 : segDist);
-      }
-      distSoFar += segDist;
-    }
-
-    if(closestDist > 30) return;
-    hasRunner = true;
-
-    const tStart = timeToMinutes(track.startTime);
-    const fastArrival = minutesToTime(Math.floor(tStart + distAlongTrack / track.fastSpeed));
-    const slowArrival = minutesToTime(Math.floor(tStart + distAlongTrack / track.slowSpeed));
-
-    info += `<b>${trackName}</b><br>Erster Läufer: ${fastArrival} Uhr<br>Letzter Läufer: ${slowArrival} Uhr<br><br>`;
-  });
-
-  if(!hasRunner) info += "Keine Strecke führt hier vorbei.";
-
-  if(!marker._popup) marker._popup = L.popup({maxWidth:250});
-  marker._popup.setLatLng(marker.getLatLng()).setContent(info).openOn(map);
-}
-
+// --- POI Marker ---
 pois.forEach(poi=>{
   const marker=L.marker(poi.coords,{icon:poiIcon}).addTo(map);
   marker.bindTooltip(poi.name);
   marker.on("click",()=>showDistancesToPoi(poi,marker));
 });
 
-// --- Slider & Update ---
+function showDistancesToPoi(poi, marker){
+  const poiLatLng = L.latLng(poi.coords);
+  let info = `<b>${poi.name}</b><br>${poi.description}<hr>`;
+  let hasRunner = false;
+  tracks.forEach(track => {
+    if(!track.trackPoints||!track.startTime||!track.endTime||!track.fastSpeed||!track.slowSpeed) return;
+    let closestDist=Infinity, distAlongTrack=0, distSoFar=0;
+    for(let i=1;i<track.trackPoints.length;i++){
+      const p1=track.trackPoints[i-1], p2=track.trackPoints[i], segDist=p1.distanceTo(p2);
+      const minDist=Math.min(p1.distanceTo(poiLatLng),p2.distanceTo(poiLatLng));
+      if(minDist<closestDist){ closestDist=minDist; distAlongTrack=distSoFar+(minDist===p1.distanceTo(poiLatLng)?0:segDist); }
+      distSoFar+=segDist;
+    }
+    if(closestDist>40) return;
+    hasRunner=true;
+    const tStart=timeToMinutes(track.startTime);
+    const fastArrival=minutesToTime(Math.floor(tStart+distAlongTrack/track.fastSpeed));
+    const slowArrival=minutesToTime(Math.floor(tStart+distAlongTrack/track.slowSpeed));
+    info+=`<b>${track.name}</b><br>Erster Läufer: ${fastArrival} Uhr<br>Letzter Läufer: ${slowArrival} Uhr<br><br>`;
+  });
+  if(!hasRunner) info+="Keine Strecke führt hier vorbei.";
+  if(!marker._popup) marker._popup=L.popup({maxWidth:250});
+  marker._popup.setLatLng(marker.getLatLng()).setContent(info).openOn(map);
+}
+
+// --- Slider ---
+const slider=document.getElementById("timeSlider");
+const timeLabel=document.getElementById("timeLabel");
+
+function updateMarkers() {
+  const currentMin = Number(slider.value);
+  timeLabel.innerText = minutesToTime(currentMin);
+  tracks.forEach(track => {
+    if (!track.trackPoints || !track.startTime || !track.endTime || !track.fastSpeed || !track.slowSpeed) {
+      ["fastMarker","slowMarker","redSegment"].forEach(k => { if(track[k]) { map.removeLayer(track[k]); track[k]=null; }});
+      return;
+    }
+    const minsSinceStart = currentMin - timeToMinutes(track.startTime);
+    const fastDist = Math.max(Math.min(track.fastSpeed*minsSinceStart, track.totalDist),0);
+    const slowDist = Math.max(Math.min(track.slowSpeed*minsSinceStart, track.totalDist),0);
+    const fastFrac = track.totalDist>0?fastDist/track.totalDist:0;
+    const slowFrac = track.totalDist>0?slowDist/track.totalDist:0;
+    const fastPos = interpolatePoint(track.trackPoints, fastFrac);
+    const slowPos = interpolatePoint(track.trackPoints, slowFrac);
+    if(track.fastMarker) track.fastMarker.setLatLng(fastPos);
+    if(track.slowMarker) track.slowMarker.setLatLng(slowPos);
+    if(track.redSegment){ map.removeLayer(track.redSegment); track.redSegment=null; }
+    const subPoints=getSubsegment(track.trackPoints, Math.min(fastFrac,slowFrac), Math.max(fastFrac,slowFrac));
+    if(subPoints.length>1) track.redSegment=L.polyline(subPoints,{color:"red",weight:6,opacity:0.8}).addTo(map);
+  });
+}
+
 function updateSliderRange(){
-  const validTracks=tracks.filter(t=>t.startTime && t.endTime);
-  if(validTracks.length===0){ document.getElementById("sliderContainer").style.display="none"; return; }
-  const startTimes=validTracks.map(t=>timeToMinutes(t.startTime));
-  const endTimes=validTracks.map(t=>timeToMinutes(t.endTime));
+  if(tracks.length===0){ document.getElementById("sliderContainer").style.display="none"; return; }
+  const startTimes=tracks.map(t=>timeToMinutes(t.startTime));
+  const endTimes=tracks.map(t=>timeToMinutes(t.endTime));
   slider.min=Math.min(...startTimes);
   slider.max=Math.max(...endTimes);
   slider.value=slider.min;
@@ -390,333 +393,93 @@ function updateSliderRange(){
   document.getElementById("sliderContainer").style.display="flex";
   updateMarkers();
 }
-let animationFrame=null;
-slider.addEventListener("input",()=>{ if(animationFrame) cancelAnimationFrame(animationFrame); animationFrame=requestAnimationFrame(updateMarkers); });
 
-// --- Glättungsfunktion für den roten Abschnitt ---
-function smoothPolyline(points, iterations = 2) {
-  for (let k = 0; k < iterations; k++) {
-    const newPoints = [];
-    for (let i = 0; i < points.length - 1; i++) {
-      const p0 = points[i];
-      const p1 = points[i + 1];
-      newPoints.push(L.latLng(
-        0.75 * p0.lat + 0.25 * p1.lat,
-        0.75 * p0.lng + 0.25 * p1.lng
-      ));
-      newPoints.push(L.latLng(
-        0.25 * p0.lat + 0.75 * p1.lat,
-        0.25 * p0.lng + 0.75 * p1.lng
-      ));
-    }
-    newPoints.push(points[points.length - 1]);
-    points = newPoints;
-  }
-  return points;
-}
+slider.addEventListener("input",()=>requestAnimationFrame(updateMarkers));
 
-// --- Aktualisierung der Läufer-Positionen und roten Linie ---
-function updateMarkers() {
-  const currentMin = Number(slider.value);
-  timeLabel.innerText = minutesToTime(currentMin);
-
-  tracks.forEach(track => {
-    if (!track.trackPoints || !track.startTime || !track.endTime || !track.fastSpeed || !track.slowSpeed) {
-      ["fastMarker", "slowMarker", "redSegment"].forEach(k => {
-        if (track[k]) { map.removeLayer(track[k]); track[k] = null; }
-      });
-      return;
-    }
-
-    const minsSinceStart = currentMin - timeToMinutes(track.startTime);
-    const fastDist = Math.max(Math.min(track.fastSpeed * minsSinceStart, track.totalDist), 0);
-    const slowDist = Math.max(Math.min(track.slowSpeed * minsSinceStart, track.totalDist), 0);
-
-    const fastFrac = track.totalDist > 0 ? fastDist / track.totalDist : 0;
-    const slowFrac = track.totalDist > 0 ? slowDist / track.totalDist : 0;
-
-    const fastPos = interpolatePoint(track.trackPoints, fastFrac);
-    const slowPos = interpolatePoint(track.trackPoints, slowFrac);
-
-    if (track.fastMarker) track.fastMarker.setLatLng(fastPos);
-    if (track.slowMarker) track.slowMarker.setLatLng(slowPos);
-
-    if (track.redSegment) {
-      map.removeLayer(track.redSegment);
-      track.redSegment = null;
-    }
-
-    const subPoints = getSubsegment(
-      track.trackPoints,
-      Math.min(fastFrac, slowFrac),
-      Math.max(fastFrac, slowFrac)
-    );
-
-    if (subPoints.length > 1) {
-      const smoothPoints = smoothPolyline(subPoints, 2); // 🔹 2 = leicht geglättet
-      track.redSegment = L.polyline(smoothPoints, {
-        color: "red",
-        weight: 6,
-        opacity: 0.8
-      }).addTo(map);
-    }
-  });
-}
-
-// --- Pace Mask Helper ---
-function initPaceField(input){
-  input.value="--:--";
-  input.addEventListener("focus",()=>{ if(input.value==="--:--") input.value=""; });
-  input.addEventListener("blur",()=>{ if(input.value==="") input.value="--:--"; });
-  input.addEventListener("input",()=>{ let val=input.value.replace(/\D/g,'').slice(0,4); if(val.length>2) val=val.slice(0,2)+":"+val.slice(2); input.value=val; });
-}
-
-// --- Trackname Default-Text Helper ---
-function initTrackName(trackNameEl){
-  const DEFAULT_TRACK_NAME = "Neue Strecke";
-  trackNameEl.innerText = DEFAULT_TRACK_NAME;
-
-  // Fokus auf Trackname
-  trackNameEl.addEventListener("focus", () => {
-    if(trackNameEl.innerText === DEFAULT_TRACK_NAME){
-      trackNameEl.innerText = "";
-      const range = document.createRange();
-      const sel = window.getSelection();
-      range.setStart(trackNameEl, 0);
-      range.collapse(true);
-      sel.removeAllRanges();
-      sel.addRange(range);
-    }
-  });
-
-  // Blur → Default wieder setzen und TrackObj updaten
-  trackNameEl.addEventListener("blur", () => {
-    if(trackNameEl.innerText.trim() === "") trackNameEl.innerText = DEFAULT_TRACK_NAME;
-    if(trackNameEl.parentElement.trackObj) {
-      trackNameEl.parentElement.trackObj.name = trackNameEl.innerText.trim();
-    }
-  });
-
-  // Enter → Fokus entfernen, Name übernehmen
-  trackNameEl.addEventListener("keydown", (e) => {
-    if(e.key === "Enter") {
-      e.preventDefault();   // verhindert Zeilenumbruch
-      trackNameEl.blur();   // wie Klick außerhalb → Name bestätigen
-    }
-  });
-
-  // Live-Update für POI-Popups beim Tippen
-  trackNameEl.addEventListener("input", () => {
-    if(trackNameEl.parentElement.trackObj) {
-      trackNameEl.parentElement.trackObj.name = trackNameEl.innerText.trim();
-    }
-  });
-}
-
-function addTrackForm() {
-  const trackList = document.getElementById("trackList");
-  const trackDiv = document.createElement("div");
-  trackDiv.className = "track";
-
-  const existingTracks = trackList.querySelectorAll(".track");
-  const color = predefinedColors[existingTracks.length % predefinedColors.length];
-
-  trackDiv.innerHTML = `
+// --- Track hinzufügen (Akkordeon, aber keine FileInput) ---
+function addTrackForm(predef){
+  const trackList=document.getElementById("trackList");
+  const trackDiv=document.createElement("div");
+  trackDiv.className="track";
+  const color=predefinedColors[trackList.querySelectorAll(".track").length % predefinedColors.length];
+  trackDiv.innerHTML=`
     <div class="track-header">
       <span class="toggleSymbol">&#9660;</span>
-      <span class="trackName" contenteditable="true">Neue Strecke</span>
+      <span class="trackName" contenteditable="true">${predef?.name||"Neue Strecke"}</span>
       <div class="colorIndicator" style="background:${color}"></div>
       <button class="deleteTrackBtn">X</button>
     </div>
     <div class="track-body">
       <label>Trackfarbe: <input type="color" class="trackColor" value="${color}"></label>
-      <label>GPX-Datei: <input type="file" class="fileInput" accept=".gpx"></label>
-      <label>Startzeit: <input type="time" class="startTime"></label>
-      <label>Zielzeit: <input type="time" class="endTime"></label>
-      <label>Schnellste Pace (min/km): <input type="text" class="fastPace" maxlength="5"></label>
-      <label>Langsamste Pace (min/km): <input type="text" class="slowPace" maxlength="5"></label>
-      <button class="loadBtn">Track laden</button>
-      <button class="resetBtn">Reset</button>
+      <label>Startzeit: <input type="time" class="startTime" value="${predef?.startTime||''}"></label>
+      <label>Zielzeit: <input type="time" class="endTime" value="${predef?.endTime||''}"></label>
+      <label>Schnellste Pace (min/km): <input type="text" class="fastPace" maxlength="5" value="${predef?.fastPace||'--:--'}"></label>
+      <label>Langsamste Pace (min/km): <input type="text" class="slowPace" maxlength="5" value="${predef?.slowPace||'--:--'}"></label>
     </div>
   `;
-
   trackList.appendChild(trackDiv);
 
-  const header = trackDiv.querySelector(".track-header");
-  const body = trackDiv.querySelector(".track-body");
-  const toggle = header.querySelector(".toggleSymbol");
-  const deleteBtn = header.querySelector(".deleteTrackBtn");
-  const colorPicker = trackDiv.querySelector(".trackColor");
-  const colorIndicator = trackDiv.querySelector(".colorIndicator");
-  const trackNameEl = trackDiv.querySelector(".trackName");
+  const header=trackDiv.querySelector(".track-header");
+  const body=trackDiv.querySelector(".track-body");
+  const toggle=header.querySelector(".toggleSymbol");
+  const deleteBtn=header.querySelector(".deleteTrackBtn");
+  const colorPicker=trackDiv.querySelector(".trackColor");
+  const colorIndicator=trackDiv.querySelector(".colorIndicator");
+  const trackNameEl=trackDiv.querySelector(".trackName");
 
-  // --- Trackname Feature integrieren ---
-  initTrackName(trackNameEl);
+  // Akkordeon
+  toggle.addEventListener("click",()=>{ const isOpen=trackDiv.classList.toggle("open"); body.style.display=isOpen?"block":"none"; toggle.innerHTML=isOpen?"&#9660;":"&#9654;"; });
+  trackDiv.classList.add("open"); body.style.display="block"; toggle.innerHTML="&#9660;";
 
-  // --- Pace Inputs vorbereiten ---
-  initPaceField(trackDiv.querySelector(".fastPace"));
-  initPaceField(trackDiv.querySelector(".slowPace"));
+  // Trackname editieren
+  trackNameEl.addEventListener("input",()=>{ if(trackDiv.trackObj) trackDiv.trackObj.name=trackNameEl.innerText.trim(); });
 
-  // --- Akkordeon nur über Pfeil ---
-  toggle.addEventListener("click", (e) => {
-    e.stopPropagation();
-    const isOpen = trackDiv.classList.toggle("open");
-    body.style.display = isOpen ? "block" : "none";
-    toggle.innerHTML = isOpen ? "&#9660;" : "&#9654;";
-  });
+  // Farbe ändern
+  colorPicker.addEventListener("input",()=>{ colorIndicator.style.background=colorPicker.value; if(trackDiv.trackObj?.fullTrackLayer) trackDiv.trackObj.fullTrackLayer.setStyle({color:colorPicker.value}); });
 
-  // --- Standardmäßig ausgeklappt ---
-  trackDiv.classList.add("open");
-  body.style.display = "block";
-  toggle.innerHTML = "&#9660;";
+  // Delete
+  deleteBtn.addEventListener("click",()=>{ if(trackDiv.trackObj){ ["fullTrackLayer","redSegment","fastMarker","slowMarker"].forEach(k=>{ if(trackDiv.trackObj[k]) map.removeLayer(trackDiv.trackObj[k]); } ); tracks=tracks.filter(t=>t.id!==trackDiv.trackObj.id); } trackDiv.remove(); updateSliderRange(); });
 
-  // --- Delete Button ---
-  deleteBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (trackDiv.trackObj) {
-      ["fullTrackLayer","redSegment","fastMarker","slowMarker"].forEach(k => {
-        if(trackDiv.trackObj[k]) map.removeLayer(trackDiv.trackObj[k]);
-      });
-      tracks = tracks.filter(t => t.id !== trackDiv.trackObj.id);
-    }
-    trackDiv.remove();
-    updateSliderRange();
-
-    // Farben der verbleibenden Tracks anpassen
-    const allTracks = document.querySelectorAll("#trackList .track");
-    allTracks.forEach((div,i) => {
-      const newColor = predefinedColors[i % predefinedColors.length];
-      const cp = div.querySelector(".trackColor");
-      const ci = div.querySelector(".colorIndicator");
-      cp.value = newColor;
-      ci.style.background = newColor;
-      if(div.trackObj) {
-        div.trackObj.color = newColor;
-        if(div.trackObj.fullTrackLayer) div.trackObj.fullTrackLayer.setStyle({color:newColor});
-      }
-    });
-  });
-
-  // --- Farbe ändern ---
-  colorPicker.addEventListener("input", () => {
-    colorIndicator.style.background = colorPicker.value;
-    if(trackDiv.trackObj?.fullTrackLayer) trackDiv.trackObj.fullTrackLayer.setStyle({color: colorPicker.value});
-  });
-
-  // --- Track laden ---
-  trackDiv.querySelector(".loadBtn").addEventListener("click", () => loadTrack(trackDiv));
-
-  // --- Reset ---
-  trackDiv.querySelector(".resetBtn").addEventListener("click", () => {
-    trackDiv.querySelector(".startTime").value = "";
-    trackDiv.querySelector(".endTime").value = "";
-    trackDiv.querySelector(".fastPace").value = "--:--";
-    trackDiv.querySelector(".slowPace").value = "--:--";
-
-    if(trackDiv.trackObj) {
-      trackDiv.trackObj.startTime = null;
-      trackDiv.trackObj.endTime = null;
-      trackDiv.trackObj.fastSpeed = null;
-      trackDiv.trackObj.slowSpeed = null;
-      ["fullTrackLayer","redSegment","fastMarker","slowMarker"].forEach(k => {
-        if(trackDiv.trackObj[k]) {
-          map.removeLayer(trackDiv.trackObj[k]);
-          trackDiv.trackObj[k] = null;
-        }
-      });
-    }
-    updateSliderRange();
-  });
+  return trackDiv;
 }
 
-function loadTrack(trackDiv) {
-  // --- Offset pro Track, damit sich GPX-Tracks nicht exakt überlagern ---
-  const existingTracks = document.querySelectorAll("#trackList .track");
-  const trackIndex = existingTracks.length; // aktueller Track-Index
-  const OFFSET_METERS = 10; // fester Abstand in Metern zwischen den Tracks
-  const offsetAngle = (trackIndex - 1) * 30; // unterschiedliche Richtung pro Track (in Grad)
-
-  // Umrechnung Meter → Grad (ungefähr für mitteleuropäische Breiten)
-  const dLat = (OFFSET_METERS / 111320) * Math.cos(offsetAngle * Math.PI / 180);
-  const dLng = (OFFSET_METERS / (111320 * Math.cos(49.9 * Math.PI / 180))) * Math.sin(offsetAngle * Math.PI / 180);
-
-  const file = trackDiv.querySelector(".fileInput").files[0];
-  if (!file) return alert("Bitte GPX-Datei auswählen.");
-
-  const MAX_SIZE = 2 * 1024 * 1024;
-  if (file.size > MAX_SIZE) {
-    alert("Die Datei ist zu groß. Bitte wähle eine GPX-Datei bis maximal 2 MB.");
-    return;
-  }
-
-  const color = trackDiv.querySelector(".trackColor").value;
-  const reader = new FileReader();
-
-  reader.onload = e => {
-    const gpxText = e.target.result;
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(gpxText, "text/xml");
-
-    let nodes = xmlDoc.getElementsByTagName("trkpt");
-    if (!nodes || nodes.length === 0) nodes = xmlDoc.getElementsByTagName("rtept");
-    if (!nodes || nodes.length === 0) {
-      alert("Keine Trackpunkte gefunden (trkpt/rtept).");
-      return;
-    }
-
-    // 🔹 Hier werden die Koordinaten leicht versetzt
-    const latlngs = Array.from(nodes).map(n =>
-      L.latLng(
-        parseFloat(n.getAttribute("lat")) + dLat,
-        parseFloat(n.getAttribute("lon")) + dLng
-      )
-    );
-
-    if (latlngs.length === 0) {
-      alert("Keine gültigen Koordinaten in der GPX-Datei.");
-      return;
-    }
-
-    const fastPaceVal = trackDiv.querySelector(".fastPace").value;
-    const slowPaceVal = trackDiv.querySelector(".slowPace").value;
-
-    const trackObj = {
-      id: Date.now() + Math.random(),
-      trackPoints: latlngs,
-      totalDist: totalLength(latlngs),
-      color: color,
-      startTime: trackDiv.querySelector(".startTime").value || null,
-      endTime: trackDiv.querySelector(".endTime").value || null,
-      fastSpeed: fastPaceVal && fastPaceVal !== "--:--" ? paceToMetersPerMinute(fastPaceVal) : null,
-      slowSpeed: slowPaceVal && slowPaceVal !== "--:--" ? paceToMetersPerMinute(slowPaceVal) : null
+// --- GPX laden ---
+function loadPredefinedGpx(gpxPath, trackDiv){
+  fetch(gpxPath).then(r=>r.text()).then(gpxText=>{
+    const xmlDoc=new DOMParser().parseFromString(gpxText,"text/xml");
+    let nodes=xmlDoc.getElementsByTagName("trkpt");
+    if(!nodes.length) nodes=xmlDoc.getElementsByTagName("rtept");
+    if(!nodes.length){ console.warn("Keine Trackpunkte:", gpxPath); return; }
+    const latlngs=Array.from(nodes).map(n=>L.latLng(parseFloat(n.getAttribute("lat")),parseFloat(n.getAttribute("lon"))));
+    const color=trackDiv.querySelector(".trackColor").value;
+    const fastPaceVal=trackDiv.querySelector(".fastPace").value;
+    const slowPaceVal=trackDiv.querySelector(".slowPace").value;
+    const trackObj={
+      id:Date.now()+Math.random(),
+      trackPoints:latlngs,
+      totalDist:totalLength(latlngs),
+      color,
+      startTime:trackDiv.querySelector(".startTime").value||null,
+      endTime:trackDiv.querySelector(".endTime").value||null,
+      fastSpeed:paceToMetersPerMinute(fastPaceVal),
+      slowSpeed:paceToMetersPerMinute(slowPaceVal),
+      name:trackDiv.querySelector(".trackName").innerText.trim()
     };
-
-    // --- Volle Strecke auf Karte ---
-    trackObj.fullTrackLayer = L.polyline(latlngs, { color, weight: 4 }).addTo(map);
-
-    // --- Läufer-Marker hinzufügen ---
-    trackObj.fastMarker = L.marker(latlngs[0], { icon: fastRunnerIcon }).addTo(map);
-    trackObj.slowMarker = L.marker(latlngs[0], { icon: slowRunnerIcon }).addTo(map);
-
-    // TrackObj an TrackDiv binden
-    trackDiv.trackObj = trackObj;
-    trackObj.name = trackDiv.querySelector(".trackName").innerText.trim();
-    trackDiv.querySelector(".trackName").dataset.trackId = trackObj.id;
-
-    // Track zu globalem Array hinzufügen
-    tracks.push(trackObj);
-
-    // Slider aktualisieren
-    updateSliderRange();
-
-    // Karte auf Track zentrieren
-    map.fitBounds(trackObj.fullTrackLayer.getBounds());
-  };
-
-  reader.readAsText(file);
+    trackObj.fullTrackLayer=L.polyline(latlngs,{color,weight:4}).addTo(map);
+    trackObj.fastMarker=L.marker(latlngs[0],{icon:fastRunnerIcon}).addTo(map);
+    trackObj.slowMarker=L.marker(latlngs[0],{icon:slowRunnerIcon}).addTo(map);
+    trackDiv.trackObj=trackObj; tracks.push(trackObj); updateSliderRange(); map.fitBounds(trackObj.fullTrackLayer.getBounds());
+  }).catch(err=>console.error("GPX Laden:",err));
 }
 
-document.getElementById("addTrackBtn").addEventListener("click",addTrackForm);
+// --- Predefined Tracks laden ---
+window.addEventListener("DOMContentLoaded",()=>{
+  predefinedTracks.forEach(pt=>{
+    const trackDiv=addTrackForm(pt);
+    if(pt.gpx) loadPredefinedGpx(pt.gpx, trackDiv);
+  });
+});
+
 </script>
 </body>
 </html>
