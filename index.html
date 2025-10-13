@@ -494,7 +494,7 @@ function loadGpxText(gpxText, trackDiv){
   const trackObj={
     id:Date.now()+Math.random(),
     trackPoints:latlngs,
-    fullTrackLayer:L.polyline(latlngs,{color:color,weight:4,opacity:0.6}).addTo(map),
+    fullTrackLayer:L.polyline(latlngs,{color:color,weight:4,opacity:1}).addTo(map),
     fastSpeed:paceToMetersPerMinute(fastPaceVal),
     slowSpeed:paceToMetersPerMinute(slowPaceVal),
     startTime:startVal,
@@ -532,3 +532,4 @@ updateSliderRange();
 </script>
 </body>
 </html>
+
