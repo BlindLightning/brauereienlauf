@@ -414,13 +414,11 @@ function addTrackForm(predef){
     <div class="track-body">
       <label>GPX-Datei: <input type="file" class="gpxFileInput" accept=".gpx"></label>
       <button class="loadGpxBtn" style="background:#FF6600;color:white;border:none;border-radius:4px;margin-top:6px;">Track laden</button>
-      
+      <label>Trackfarbe: <input type="color" class="trackColor" value="${color}"></label>
       <label>Startzeit: <input type="time" class="startTime" value="${origStartTime}"></label>
       <label>Zielzeit: <input type="time" class="endTime" value="${origEndTime}"></label>
       <label>Schnellste Pace (min/km): <input type="text" class="fastPace" maxlength="5" value="${origFastPace}"></label>
       <label>Langsamste Pace (min/km): <input type="text" class="slowPace" maxlength="5" value="${origSlowPace}"></label>
-
-      <label>Trackfarbe: <input type="color" class="trackColor" value="${color}"></label>
       <button class="resetBtn" style="background:#FF6600;color:white;border:none;border-radius:4px;margin-top:6px;">⟳ Zurücksetzen</button>
     </div>
   `;
@@ -532,4 +530,5 @@ updateSliderRange();
 </script>
 </body>
 </html>
+
 
