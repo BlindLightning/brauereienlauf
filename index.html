@@ -258,58 +258,61 @@ input[type="text"] { font-variant-numeric: tabular-nums; }
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-// --- Karte ---
+// --- Karte initialisieren ---
 const map = L.map('map').setView([49.9, 11.0], 12);
-L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png',{
-  maxZoom:19,
-  attribution:'© OpenStreetMap-Mitwirkende'
+L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '© OpenStreetMap-Mitwirkende'
 }).addTo(map);
 
-// --- Slider ---
-const slider = document.getElementById("timeSlider");
-const timeLabel = document.getElementById("timeLabel");
+// --- Slider-Farbverlauf ---
+const timeSlider = document.getElementById('timeSlider');
+if (timeSlider) {
+  const updateSliderColor = () => {
+    const value = (timeSlider.value - timeSlider.min) / (timeSlider.max - timeSlider.min) * 100;
+    timeSlider.style.setProperty('--slider-progress', `${value}%`);
+  };
+  timeSlider.addEventListener('input', updateSliderColor);
+  updateSliderColor();
+}
 
-const updateSliderColor = () => {
-  const value = (slider.value - slider.min) / (slider.max - slider.min) * 100;
-  slider.style.setProperty('--slider-progress', `${value}%`);
-};
-slider.addEventListener('input', () => { updateSliderColor(); requestAnimationFrame(updateMarkers); });
-updateSliderColor();
-
-// --- POIs ---
+// --- POIs definieren ---
 const pois = [
-  { name:"Start und Ziel", coords:[49.91086414586559,11.008078342287886], description:"Start und Zielbereich Tanzwiesen Litzendorf" },
-  { name:"Brauerei Knoblach", coords:[49.92612562825621,11.006192497921718], description:"VP Brauerei Knoblach" },
-  { name:"Brauerei Hölzlein", coords:[49.916433164362154,11.044922412182059], description:"VP Brauerei Hölzlein" },
-  { name:"Brauerei Hönig", coords:[49.91854570624229,11.074094351945764], description:"VP Brauerei Hönig" },
-  { name:"Brauerei Reh", coords:[49.9161925538902,11.050437379307478], description:"VP Brauerei Reh" },
-  { name:"Brauerei Brandholz", coords:[49.89962613596553,11.031593469565935], description:"VP Brauerei Brandholz" },
-  { name:"Landgasthof Büttel", coords:[49.88168405246902,11.01294568627889], description:"VP Landgasthof Büttel" },
-  { name:"Gasthof Schiller", coords:[49.85771626727418,11.005281650520448], description:"VP Gasthof Schiller" },
-  { name:"Schwanenkeller", coords:[49.851879458949746,10.97576017952508], description:"VP Schwanenkeller" },
-  { name:"Brauerei Sauer", coords:[49.867831104839176,10.996951685705579], description:"VP Brauerei Sauer" },
-  { name:"Regnitztaler Alm", coords:[49.88765943343463, 10.981377141550507], description:"VP Regnitztaler Alm" },
-  { name:"Kunigundenruh", coords:[49.903828616877256,10.960579372597097], description:"VP Kunigundenruh" }
+  { name: "Start und Ziel", coords: [49.91086414586559,11.008078342287886], description: "Start und Zielbereich Tanzwiesen Litzendorf" },
+  { name: "Brauerei Knoblach", coords: [49.92612562825621,11.006192497921718], description: "VP Brauerei Knoblach" },
+  { name: "Brauerei Hölzlein", coords: [49.916433164362154,11.044922412182059], description: "VP Brauerei Hölzlein" },
+  { name: "Brauerei Hönig", coords: [49.91854570624229,11.074094351945764], description: "VP Brauerei Hönig" },
+  { name: "Brauerei Reh", coords: [49.9161925538902,11.050437379307478], description: "VP Brauerei Reh" },
+  { name: "Brauerei Brandholz", coords: [49.89962613596553,11.031593469565935], description: "VP Brauerei Brandholz" },
+  { name: "Landgasthof Büttel", coords: [49.88168405246902,11.01294568627889], description: "VP Landgasthof Büttel" },
+  { name: "Gasthof Schiller", coords: [49.85771626727418,11.005281650520448], description: "VP Gasthof Schiller" },
+  { name: "Schwanenkeller", coords: [49.851879458949746,10.97576017952508], description: "VP Schwanenkeller" },
+  { name: "Brauerei Sauer", coords: [49.867831104839176,10.996951685705579], description: "VP Brauerei Sauer" },
+  { name: "Regnitztaler Alm", coords: [49.88765943343463,10.981377141550507], description: "VP Regnitztaler Alm" },
+  { name: "Kunigundenruh", coords: [49.903828616877256,10.960579372597097], description: "VP Kunigundenruh" }
 ];
 
+// --- Icons ---
 const poiIcon = L.icon({
   iconUrl: "icons/brauereienlauf_gestaltungselemente_maennchen_orange_rgb.svg",
-  iconSize: [32,32],
-  iconAnchor: [16,32],
-  popupAnchor: [0,-32]
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+  popupAnchor: [0, -32]
 });
 
-pois.forEach(poi => {
-  const marker = L.marker(poi.coords, {icon: poiIcon}).addTo(map);
-  marker.bindTooltip(poi.name);
-  marker.on("click", ()=>showDistancesToPoi(poi, marker));
+const fastRunnerIcon = L.icon({
+  iconUrl: 'icons/brauereienlauf_gestaltungselemente_maennchen_gruen_rgb.svg',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12]
 });
 
-// --- Läufer-Icons ---
-const fastRunnerIcon = L.icon({iconUrl:'icons/brauereienlauf_gestaltungselemente_maennchen_gruen_rgb.svg',iconSize:[24,24],iconAnchor:[12,12],popupAnchor:[0,-12]});
-const slowRunnerIcon = L.icon({iconUrl:'icons/brauereienlauf_gestaltungselemente_maennchen_orange_rgb.svg',iconSize:[24,24],iconAnchor:[12,12],popupAnchor:[0,-12]});
+const slowRunnerIcon = L.icon({
+  iconUrl: 'icons/brauereienlauf_gestaltungselemente_maennchen_orange_rgb.svg',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12]
+});
 
-// --- Tracks ---
+// --- Globale Variablen ---
 let tracks = [];
 const predefinedColors = ["#36542C","#FF6600","#7664AA","#212121","#DED0BA"];
 
@@ -318,95 +321,128 @@ const predefinedTracks = [
   { name:"Marathon", gpx:"tracks/M.gpx", startTime:"09:00", endTime:"16:00", fastPace:"03:30", slowPace:"09:00" },
   { name:"Halbmarathon", gpx:"tracks/HM.gpx", startTime:"11:00", endTime:"16:00", fastPace:"03:30", slowPace:"09:00" },
   { name:"10 km", gpx:"tracks/10k.gpx", startTime:"13:00", endTime:"16:00", fastPace:"03:30", slowPace:"09:00" },
-  { name:"5 km", gpx:"tracks/5km.gpx", startTime:"13:30", endTime:"16:00", fastPace:"03:30", slowPace:"09:00" }
+  { name:"5 km", gpx:"tracks/5k.gpx", startTime:"13:30", endTime:"16:00", fastPace:"03:30", slowPace:"09:00" }
 ];
 
 // --- Hilfsfunktionen ---
-function parsePace(p){ if(!p||p==="--:--") return null; const parts=p.split(":").map(Number); return parts[0]*60+(parts[1]||0); }
-function paceToMetersPerMinute(p){ const sec=parsePace(p); return sec?1000/(sec/60):null; }
+function parsePace(p) { if (!p || p === "--:--") return null; const [m,s] = p.split(":").map(Number); return m*60+(s||0); }
+function paceToMetersPerMinute(p) { const s = parsePace(p); return s ? 1000 / (s / 60) : null; }
 function totalLength(latlngs){ let d=0; for(let i=1;i<latlngs.length;i++) d+=latlngs[i-1].distanceTo(latlngs[i]); return d; }
-function interpolatePoint(latlngs,f){ if(!latlngs||!latlngs.length) return null; if(f<=0) return latlngs[0]; if(f>=1) return latlngs[latlngs.length-1]; const total=totalLength(latlngs); let dist=0; for(let i=1;i<latlngs.length;i++){ const seg=latlngs[i-1].distanceTo(latlngs[i]); if(dist+seg>=total*f){ const r=(total*f-dist)/seg; return L.latLng(latlngs[i-1].lat+(latlngs[i].lat-latlngs[i-1].lat)*r, latlngs[i-1].lng+(latlngs[i].lng-latlngs[i-1].lng)*r); } dist+=seg; } return latlngs[latlngs.length-1]; }
-function getSubsegment(latlngs,startFrac,endFrac){ if(!latlngs||!latlngs.length) return []; const total=totalLength(latlngs); let dist=0; const pts=[]; let startAdded=false; for(let i=1;i<latlngs.length;i++){ const seg=latlngs[i-1].distanceTo(latlngs[i]); const segStart=dist; const segEnd=dist+seg; if(!startAdded && segEnd>=total*startFrac){ const r=(total*startFrac-segStart)/seg; pts.push(L.latLng(latlngs[i-1].lat+(latlngs[i].lat-latlngs[i-1].lat)*r, latlngs[i-1].lng+(latlngs[i].lng-latlngs[i-1].lng)*r)); startAdded=true; } if(segEnd>total*startFrac && segStart<total*endFrac) pts.push(latlngs[i]); if(segEnd>=total*endFrac){ const r=(total*endFrac-segStart)/seg; pts.push(L.latLng(latlngs[i-1].lat+(latlngs[i].lat-latlngs[i-1].lat)*r, latlngs[i-1].lng+(latlngs[i].lng-latlngs[i-1].lng)*r)); break; } dist+=seg; } return pts; }
-function timeToMinutes(t){ const [h,m]=t.split(":").map(Number); return h*60+m; }
-function minutesToTime(m){ const h=Math.floor(m/60); const mm=m%60; return `${h.toString().padStart(2,'0')}:${mm.toString().padStart(2,'0')}`; }
+function timeToMinutes(t){ const [h,m] = t.split(":").map(Number); return h*60+m; }
+function minutesToTime(m){ const h=Math.floor(m/60), mm=m%60; return `${h.toString().padStart(2,'0')}:${mm.toString().padStart(2,'0')}`; }
 
-// --- POI Anzeige ---
+// --- POIs auf Karte ---
+pois.forEach(poi=>{
+  const m=L.marker(poi.coords,{icon:poiIcon}).addTo(map);
+  m.bindTooltip(poi.name);
+  m.on("click",()=>showDistancesToPoi(poi,m));
+});
+
 function showDistancesToPoi(poi, marker){
-  const poiLatLng = L.latLng(poi.coords);
-  let info = `<b>${poi.name}</b><br>${poi.description}<hr>`;
-  let hasRunner = false;
-  tracks.forEach(track => {
-    if(!track.trackPoints||!track.startTime||!track.endTime||!track.fastSpeed||!track.slowSpeed) return;
-    let closestDist=Infinity, distAlongTrack=0, distSoFar=0;
+  const poiLatLng=L.latLng(poi.coords);
+  let info=`<b>${poi.name}</b><br>${poi.description}<hr>`;
+  let hasRunner=false;
+  tracks.forEach(track=>{
+    if(!track.trackPoints)return;
+    const total=track.totalDist;
+    let minDist=Infinity, distAlong=0, soFar=0;
     for(let i=1;i<track.trackPoints.length;i++){
-      const p1=track.trackPoints[i-1], p2=track.trackPoints[i], segDist=p1.distanceTo(p2);
-      const minDist=Math.min(p1.distanceTo(poiLatLng),p2.distanceTo(poiLatLng));
-      if(minDist<closestDist){ closestDist=minDist; distAlongTrack=distSoFar+(minDist===p1.distanceTo(poiLatLng)?0:segDist); }
-      distSoFar+=segDist;
+      const a=track.trackPoints[i-1],b=track.trackPoints[i];
+      const seg=a.distanceTo(b);
+      const min=Math.min(a.distanceTo(poiLatLng),b.distanceTo(poiLatLng));
+      if(min<minDist){minDist=min;distAlong=soFar;}
+      soFar+=seg;
     }
-    if(closestDist>40) return;
+    if(minDist>50) return;
     hasRunner=true;
     const tStart=timeToMinutes(track.startTime);
-    const fastArrival=minutesToTime(Math.floor(tStart+distAlongTrack/track.fastSpeed));
-    const slowArrival=minutesToTime(Math.floor(tStart+distAlongTrack/track.slowSpeed));
-    info+=`<b>${track.name}</b><br>Erster Läufer: ${fastArrival} Uhr<br>Letzter Läufer: ${slowArrival} Uhr<br><br>`;
+    const fast=timeToMinutes(track.startTime)+distAlong/track.fastSpeed;
+    const slow=timeToMinutes(track.startTime)+distAlong/track.slowSpeed;
+    info+=`<b>${track.name}</b><br>Erster Läufer: ${minutesToTime(fast)} Uhr<br>Letzter Läufer: ${minutesToTime(slow)} Uhr<br><br>`;
   });
   if(!hasRunner) info+="Keine Strecke führt hier vorbei.";
-  if(!marker._popup) marker._popup=L.popup({maxWidth:250});
-  marker._popup.setLatLng(marker.getLatLng()).setContent(info).openOn(map);
+  marker.bindPopup(info).openPopup();
 }
 
-// --- Slider & Marker Updates ---
-function updateMarkers() {
-  const currentMin = Number(slider.value);
-  timeLabel.innerText = minutesToTime(currentMin);
-  tracks.forEach(track => {
-    if (!track.trackPoints || !track.startTime || !track.endTime || !track.fastSpeed || !track.slowSpeed) {
-      ["fastMarker","slowMarker","redSegment"].forEach(k => { if(track[k]) { map.removeLayer(track[k]); track[k]=null; }});
-      return;
-    }
-    const minsSinceStart = currentMin - timeToMinutes(track.startTime);
-    const fastDist = Math.max(Math.min(track.fastSpeed*minsSinceStart, track.totalDist),0);
-    const slowDist = Math.max(Math.min(track.slowSpeed*minsSinceStart, track.totalDist),0);
-    const fastFrac = track.totalDist>0?fastDist/track.totalDist:0;
-    const slowFrac = track.totalDist>0?slowDist/track.totalDist:0;
-    const fastPos = interpolatePoint(track.trackPoints, fastFrac);
-    const slowPos = interpolatePoint(track.trackPoints, slowFrac);
-    if(track.fastMarker) track.fastMarker.setLatLng(fastPos);
-    if(track.slowMarker) track.slowMarker.setLatLng(slowPos);
-    if(track.redSegment){ map.removeLayer(track.redSegment); track.redSegment=null; }
-    const subPoints=getSubsegment(track.trackPoints, Math.min(fastFrac,slowFrac), Math.max(fastFrac,slowFrac));
-    if(subPoints.length>1) track.redSegment=L.polyline(subPoints,{color:"red",weight:6,opacity:0.8}).addTo(map);
+// --- Slider + Marker Update ---
+const slider=document.getElementById("timeSlider");
+const timeLabel=document.getElementById("timeLabel");
+
+function updateMarkers(){
+  const cur=Number(slider.value);
+  timeLabel.innerText=minutesToTime(cur);
+  tracks.forEach(t=>{
+    if(!t.trackPoints)return;
+    const mins=cur-timeToMinutes(t.startTime);
+    const fDist=Math.min(t.fastSpeed*mins,t.totalDist);
+    const sDist=Math.min(t.slowSpeed*mins,t.totalDist);
+    const fFrac=fDist/t.totalDist, sFrac=sDist/t.totalDist;
+    const fPos=t.trackPoints[Math.floor(fFrac*(t.trackPoints.length-1))];
+    const sPos=t.trackPoints[Math.floor(sFrac*(t.trackPoints.length-1))];
+    if(t.fastMarker)t.fastMarker.setLatLng(fPos);
+    if(t.slowMarker)t.slowMarker.setLatLng(sPos);
   });
 }
+slider.addEventListener("input",()=>requestAnimationFrame(updateMarkers));
 
-function updateSliderRange(){
-  if(tracks.length===0){ document.getElementById("sliderContainer").style.display="none"; return; }
-  const startTimes=tracks.map(t=>timeToMinutes(t.startTime));
-  const endTimes=tracks.map(t=>timeToMinutes(t.endTime));
-  slider.min=Math.min(...startTimes);
-  slider.max=Math.max(...endTimes);
-  slider.value=slider.min;
-  timeLabel.innerText=minutesToTime(slider.value);
-  document.getElementById("sliderContainer").style.display="flex";
-  updateMarkers();
+// --- Reset ---
+function resetTrackSettings(div, start, end, fast, slow){
+  div.querySelector(".startTime").value=start;
+  div.querySelector(".endTime").value=end;
+  div.querySelector(".fastPace").value=fast;
+  div.querySelector(".slowPace").value=slow;
+  if(div.trackObj){
+    const {fastMarker,slowMarker,trackPoints}=div.trackObj;
+    if(trackPoints?.length){
+      fastMarker.setLatLng(trackPoints[0]);
+      slowMarker.setLatLng(trackPoints[0]);
+    }
+  }
 }
 
-// --- Track Form hinzufügen ---
+// --- GPX laden ---
+function loadGpxFile(file,div){
+  const r=new FileReader();
+  r.onload=e=>parseGpxAndAddTrack(e.target.result,div);
+  r.readAsText(file);
+}
+function loadPredefinedGpx(path,div){
+  fetch(path).then(r=>r.text()).then(txt=>parseGpxAndAddTrack(txt,div));
+}
+function parseGpxAndAddTrack(txt,div){
+  const xml=new DOMParser().parseFromString(txt,"text/xml");
+  const pts=[...xml.getElementsByTagName("trkpt")].map(n=>L.latLng(+n.getAttribute("lat"),+n.getAttribute("lon")));
+  const color=div.querySelector(".trackColor").value;
+  const start=div.querySelector(".startTime").value;
+  const end=div.querySelector(".endTime").value;
+  const fast=div.querySelector(".fastPace").value;
+  const slow=div.querySelector(".slowPace").value;
+  const obj={
+    trackPoints:pts,
+    totalDist:totalLength(pts),
+    fastSpeed:paceToMetersPerMinute(fast),
+    slowSpeed:paceToMetersPerMinute(slow),
+    startTime:start,
+    endTime:end,
+    name:div.querySelector(".trackName").innerText,
+    fullTrackLayer:L.polyline(pts,{color,weight:5}).addTo(map),
+    fastMarker:L.marker(pts[0],{icon:fastRunnerIcon}).addTo(map),
+    slowMarker:L.marker(pts[0],{icon:slowRunnerIcon}).addTo(map)
+  };
+  div.trackObj=obj;
+  tracks.push(obj);
+  map.fitBounds(obj.fullTrackLayer.getBounds());
+}
+
+// --- Track hinzufügen (Akkordeon) ---
 function addTrackForm(predef){
-  const trackList = document.getElementById("trackList");
-  const trackDiv = document.createElement("div");
-  trackDiv.className = "track";
-  const color = predefinedColors[trackList.querySelectorAll(".track").length % predefinedColors.length];
-
-  const origStartTime = predef?.startTime || "";
-  const origEndTime = predef?.endTime || "";
-  const origFastPace = predef?.fastPace || "--:--";
-  const origSlowPace = predef?.slowPace || "--:--";
-
-  trackDiv.innerHTML = `
+  const list=document.getElementById("trackList");
+  const div=document.createElement("div");
+  div.className="track";
+  const color=predefinedColors[list.querySelectorAll(".track").length%predefinedColors.length];
+  div.innerHTML=`
     <div class="track-header">
-      <span class="toggleSymbol">&#9660;</span>
+      <span class="toggleSymbol">&#9654;</span>
       <span class="trackName" contenteditable="true">${predef?.name||"Neue Strecke"}</span>
       <div class="colorIndicator" style="background:${color}"></div>
       <button class="deleteTrackBtn">X</button>
@@ -414,121 +450,44 @@ function addTrackForm(predef){
     <div class="track-body">
       <label>GPX-Datei: <input type="file" class="gpxFileInput" accept=".gpx"></label>
       <button class="loadGpxBtn" style="background:#FF6600;color:white;border:none;border-radius:4px;margin-top:6px;">Track laden</button>
+      <label>Startzeit: <input type="time" class="startTime" value="${predef?.startTime||''}"></label>
+      <label>Zielzeit: <input type="time" class="endTime" value="${predef?.endTime||''}"></label>
+      <label>Schnellste Pace (min/km): <input type="text" class="fastPace" value="${predef?.fastPace||'--:--'}"></label>
+      <label>Langsamste Pace (min/km): <input type="text" class="slowPace" value="${predef?.slowPace||'--:--'}"></label>
       <label>Trackfarbe: <input type="color" class="trackColor" value="${color}"></label>
-      <label>Startzeit: <input type="time" class="startTime" value="${origStartTime}"></label>
-      <label>Zielzeit: <input type="time" class="endTime" value="${origEndTime}"></label>
-      <label>Schnellste Pace (min/km): <input type="text" class="fastPace" maxlength="5" value="${origFastPace}"></label>
-      <label>Langsamste Pace (min/km): <input type="text" class="slowPace" maxlength="5" value="${origSlowPace}"></label>
       <button class="resetBtn" style="background:#FF6600;color:white;border:none;border-radius:4px;margin-top:6px;">⟳ Zurücksetzen</button>
-    </div>
-  `;
+    </div>`;
+  list.appendChild(div);
 
-  trackList.appendChild(trackDiv);
+  const head=div.querySelector(".track-header");
+  const body=div.querySelector(".track-body");
+  const toggle=head.querySelector(".toggleSymbol");
+  const isPredef=!!predef;
+  if(!isPredef){ body.style.display="block"; toggle.innerHTML="&#9660;"; }
+  else { body.style.display="none"; toggle.innerHTML="&#9654;"; }
 
-  const header=trackDiv.querySelector(".track-header");
-  const body=trackDiv.querySelector(".track-body");
-  const toggle=header.querySelector(".toggleSymbol");
-  const deleteBtn=header.querySelector(".deleteTrackBtn");
-  const colorPicker=trackDiv.querySelector(".trackColor");
-  const colorIndicator=trackDiv.querySelector(".colorIndicator");
-  const trackNameEl=trackDiv.querySelector(".trackName");
-  const loadGpxBtn = trackDiv.querySelector(".loadGpxBtn");
-  const gpxInput = trackDiv.querySelector(".gpxFileInput");
-  const resetBtn = trackDiv.querySelector(".resetBtn");
-
-  // Akkordeon
-  toggle.addEventListener("click",()=>{ const isOpen=trackDiv.classList.toggle("open"); body.style.display=isOpen?"block":"none"; toggle.innerHTML=isOpen?"&#9660;":"&#9654;"; });
-  trackDiv.classList.add("open"); body.style.display="block"; toggle.innerHTML="&#9660;";
-
-  // Trackname editieren
-  trackNameEl.addEventListener("input",()=>{ if(trackDiv.trackObj) trackDiv.trackObj.name=trackNameEl.innerText.trim(); });
-
-  // Farbe ändern
-  colorPicker.addEventListener("input",()=>{ colorIndicator.style.background=colorPicker.value; if(trackDiv.trackObj?.fullTrackLayer) trackDiv.trackObj.fullTrackLayer.setStyle({color:colorPicker.value}); });
-
-  // Delete
-  deleteBtn.addEventListener("click",()=>{ 
-    if(trackDiv.trackObj){ 
-      ["fullTrackLayer","redSegment","fastMarker","slowMarker"].forEach(k=>{ if(trackDiv.trackObj[k]) map.removeLayer(trackDiv.trackObj[k]); } ); 
-      tracks=tracks.filter(t=>t.id!==trackDiv.trackObj.id); 
-    } 
-    trackDiv.remove(); 
-    updateSliderRange(); 
+  head.addEventListener("click",()=>{
+    const open=body.style.display==="block";
+    body.style.display=open?"none":"block";
+    toggle.innerHTML=open?"&#9654;":"&#9660;";
   });
 
-  // Reset
-  resetBtn.addEventListener("click",(e)=>{ e.preventDefault(); resetTrackSettings(trackDiv, origStartTime, origEndTime, origFastPace, origSlowPace); });
-
-  // GPX laden
-  loadGpxBtn.addEventListener("click",(e)=>{
-    e.preventDefault();
-    if(!gpxInput.files.length) return alert("Bitte GPX-Datei auswählen!");
-    const file = gpxInput.files[0];
-    const reader = new FileReader();
-    reader.onload = () => loadGpxText(reader.result, trackDiv);
-    reader.readAsText(file);
+  div.querySelector(".deleteTrackBtn").addEventListener("click",()=>{
+    if(div.trackObj) map.removeLayer(div.trackObj.fullTrackLayer);
+    div.remove();
   });
 
-  // Wenn Predefined, direkt laden
-  if(predef?.gpx) fetch(predef.gpx).then(r=>r.text()).then(txt=>loadGpxText(txt, trackDiv)).catch(console.error);
-
-  return trackDiv;
+  div.querySelector(".resetBtn").addEventListener("click",()=>resetTrackSettings(div,predef?.startTime||"",predef?.endTime||"",predef?.fastPace||"--:--",predef?.slowPace||"--:--"));
+  div.querySelector(".loadGpxBtn").addEventListener("click",()=>{
+    const fileInput=div.querySelector(".gpxFileInput");
+    if(fileInput.files.length) loadGpxFile(fileInput.files[0],div);
+    else if(predef?.gpx) loadPredefinedGpx(predef.gpx,div);
+    else alert("Bitte eine GPX-Datei auswählen!");
+  });
 }
 
-// --- GPX laden ---
-function loadGpxText(gpxText, trackDiv){
-  const xmlDoc=new DOMParser().parseFromString(gpxText,"text/xml");
-  let nodes = xmlDoc.getElementsByTagNameNS("*", "trkpt");
-  if (!nodes.length) nodes = xmlDoc.getElementsByTagNameNS("*", "rtept");
-  if (!nodes.length) nodes = xmlDoc.getElementsByTagNameNS("*", "wpt");
-  if(!nodes.length){ console.warn("Keine Trackpunkte gefunden"); return; }
-  const latlngs=Array.from(nodes).map(n=>L.latLng(parseFloat(n.getAttribute("lat")),parseFloat(n.getAttribute("lon"))));
-  const color=trackDiv.querySelector(".trackColor").value;
-  const fastPaceVal=trackDiv.querySelector(".fastPace").value;
-  const slowPaceVal=trackDiv.querySelector(".slowPace").value;
-  const startVal = trackDiv.querySelector(".startTime").value;
-  const endVal = trackDiv.querySelector(".endTime").value;
-
-  const trackObj={
-    id:Date.now()+Math.random(),
-    trackPoints:latlngs,
-    fullTrackLayer:L.polyline(latlngs,{color:color,weight:4,opacity:1}).addTo(map),
-    fastSpeed:paceToMetersPerMinute(fastPaceVal),
-    slowSpeed:paceToMetersPerMinute(slowPaceVal),
-    startTime:startVal,
-    endTime:endVal,
-    totalDist:totalLength(latlngs),
-    name:trackDiv.querySelector(".trackName").innerText.trim(),
-    fastMarker:L.marker(latlngs[0],{icon:fastRunnerIcon}).addTo(map),
-    slowMarker:L.marker(latlngs[0],{icon:slowRunnerIcon}).addTo(map)
-  };
-  trackDiv.trackObj=trackObj;
-  tracks.push(trackObj);
-  updateSliderRange();
-}
-
-// --- Reset Track Einstellungen ---
-function resetTrackSettings(trackDiv, startTime, endTime, fastPace, slowPace){
-  const trackObj=trackDiv.trackObj;
-  if(trackObj){
-    ["fastMarker","slowMarker","redSegment"].forEach(k=>{ if(trackObj[k]) map.removeLayer(trackObj[k]); trackObj[k]=null; });
-    trackObj.fastSpeed=paceToMetersPerMinute(fastPace);
-    trackObj.slowSpeed=paceToMetersPerMinute(slowPace);
-    trackObj.startTime=startTime;
-    trackObj.endTime=endTime;
-  }
-  trackDiv.querySelector(".startTime").value=startTime;
-  trackDiv.querySelector(".endTime").value=endTime;
-  trackDiv.querySelector(".fastPace").value=fastPace;
-  trackDiv.querySelector(".slowPace").value=slowPace;
-  updateMarkers();
-}
-
-// --- Predefined Tracks hinzufügen ---
+// --- Initialisierung ---
 predefinedTracks.forEach(t=>addTrackForm(t));
-updateSliderRange();
 </script>
 </body>
 </html>
-
-
