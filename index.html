@@ -256,6 +256,8 @@ input[type="text"] { font-variant-numeric: tabular-nums; }
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script>
 // --- Karte ---
 const map = L.map('map').setView([49.9, 11.0],12);
@@ -396,7 +398,7 @@ function updateSliderRange(){
 
 slider.addEventListener("input",()=>requestAnimationFrame(updateMarkers));
 
-// --- Track hinzufügen (Akkordeon, aber keine FileInput) ---
+// --- Track hinzufügen ---
 function addTrackForm(predef){
   const trackList=document.getElementById("trackList");
   const trackDiv=document.createElement("div");
@@ -443,6 +445,32 @@ function addTrackForm(predef){
   return trackDiv;
 }
 
+// --- Reset-Button hinzufügen ---
+function addResetButtons() {
+  document.querySelectorAll(".track-body").forEach(trackBody => {
+    if (trackBody.querySelector(".resetBtn")) return;
+
+    const resetBtn = document.createElement("button");
+    resetBtn.textContent = "⟳ Zurücksetzen";
+    resetBtn.classList.add("resetBtn");
+    resetBtn.style.marginTop = "6px";
+    resetBtn.style.background = "#eee";
+    resetBtn.style.border = "1px solid #ccc";
+    resetBtn.style.borderRadius = "8px";
+    resetBtn.style.padding = "4px 10px";
+    resetBtn.style.cursor = "pointer";
+
+    resetBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const trackDiv = trackBody.closest(".track");
+      resetTrackSettings(trackDiv);
+      updateSliderRange(); // Slider auch resetten
+    });
+
+    trackBody.appendChild(resetBtn);
+  });
+}
+
 // --- GPX laden ---
 function loadPredefinedGpx(gpxPath, trackDiv){
   fetch(gpxPath).then(r=>r.text()).then(gpxText=>{
@@ -469,18 +497,41 @@ function loadPredefinedGpx(gpxPath, trackDiv){
     trackObj.fullTrackLayer=L.polyline(latlngs,{color,weight:4}).addTo(map);
     trackObj.fastMarker=L.marker(latlngs[0],{icon:fastRunnerIcon}).addTo(map);
     trackObj.slowMarker=L.marker(latlngs[0],{icon:slowRunnerIcon}).addTo(map);
-    trackDiv.trackObj=trackObj; tracks.push(trackObj); updateSliderRange(); map.fitBounds(trackObj.fullTrackLayer.getBounds());
-  }).catch(err=>console.error("GPX Laden:",err));
+    trackDiv.trackObj=trackObj;
+    tracks.push(trackObj);
+    map.fitBounds(L.latLngBounds(latlngs));
+    updateSliderRange();
+  }).catch(err=>console.error("Fehler GPX laden",err));
 }
 
-// --- Predefined Tracks laden ---
+// --- Reset Track Settings ---
+function resetTrackSettings(trackDiv){
+  if(!trackDiv.trackObj) return;
+  const t=trackDiv.trackObj;
+  const latlngs=t.trackPoints;
+  t.startTime=null;
+  t.endTime=null;
+  t.fastSpeed=null;
+  t.slowSpeed=null;
+  trackDiv.querySelector(".startTime").value="";
+  trackDiv.querySelector(".endTime").value="";
+  trackDiv.querySelector(".fastPace").value="--:--";
+  trackDiv.querySelector(".slowPace").value="--:--";
+  ["redSegment"].forEach(k=>{ if(t[k]){ map.removeLayer(t[k]); t[k]=null; }});
+  if(t.fastMarker) t.fastMarker.setLatLng(latlngs[0]);
+  if(t.slowMarker) t.slowMarker.setLatLng(latlngs[0]);
+  slider.value = slider.min; // Slider zurücksetzen
+  updateMarkers();
+}
+
+// --- Init ---
 window.addEventListener("DOMContentLoaded",()=>{
   predefinedTracks.forEach(pt=>{
     const trackDiv=addTrackForm(pt);
     if(pt.gpx) loadPredefinedGpx(pt.gpx, trackDiv);
   });
+  addResetButtons();
 });
-
 </script>
 </body>
 </html>
