@@ -447,8 +447,9 @@ function addTrackForm(predef){
 function loadPredefinedGpx(gpxPath, trackDiv){
   fetch(gpxPath).then(r=>r.text()).then(gpxText=>{
     const xmlDoc=new DOMParser().parseFromString(gpxText,"text/xml");
-    let nodes=xmlDoc.getElementsByTagName("trkpt");
-    if(!nodes.length) nodes=xmlDoc.getElementsByTagName("rtept");
+    let nodes = xmlDoc.getElementsByTagNameNS("*", "trkpt");
+	if (!nodes.length) nodes = xmlDoc.getElementsByTagNameNS("*", "rtept");
+	if (!nodes.length) nodes = xmlDoc.getElementsByTagNameNS("*", "wpt");
     if(!nodes.length){ console.warn("Keine Trackpunkte:", gpxPath); return; }
     const latlngs=Array.from(nodes).map(n=>L.latLng(parseFloat(n.getAttribute("lat")),parseFloat(n.getAttribute("lon"))));
     const color=trackDiv.querySelector(".trackColor").value;
