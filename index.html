@@ -236,6 +236,7 @@ body {
   outline: 2px solid #FF6600; 
 }
 
+/* Button Base Styles */
 button { 
   background: #FF6600; 
   color: white; 
@@ -249,10 +250,15 @@ button {
 }
 button:hover { background: #cc5200; }
 
+/* Strecke hinzufügen Button */
+#addTrackBtn {
+  font-size: 16px;
+  font-weight: bold;
+}
+
 /* Primary Button (Track laden) */
 .loadBtn {
   background: #FF6600;
-  transition: background 0.2s ease;
 }
 .loadBtn:hover {
   background: #cc5200;
@@ -262,7 +268,6 @@ button:hover { background: #cc5200; }
 .resetBtn {
   background: #7664AA;
   color: white;
-  transition: background 0.2s ease;
 }
 .resetBtn:hover {
   background: #5d4d8a;
@@ -397,6 +402,18 @@ input[type="color"]:focus {
 
 .leaflet-popup-content, 
 .leaflet-tooltip { font-family: 'Inter', sans-serif; }
+
+.leaflet-popup-content {
+  background: #FCF6EE !important;
+  border-radius: 8px;
+  padding-top: 50px !important;
+  position: relative;
+  color: #333 !important;
+}
+
+.leaflet-popup {
+  margin-bottom: 0 !important;
+}
 
 .track-body * { font-family: 'Inter', sans-serif; }
 
