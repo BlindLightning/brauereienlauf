@@ -4,13 +4,10 @@
 <meta charset="UTF-8">
 <title>Brauereienlauf - Streckensimulator</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" type="image/svg+xml" href="icons/brauereienlauf_gestaltungselemente_maennchen_beigea_rgb.svg">
-<link rel="apple-touch-icon" sizes="180x180" href="icons/brauereienlauf_gestaltungselemente_maennchen_beigea_rgb.svg">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 <style>
 /* --- Global --- */
-/* Grundlayout und Schriftart der Seite */
 body { 
   margin: 0; 
   font-family: 'Inter', sans-serif; 
@@ -20,7 +17,6 @@ body {
 }
 
 /* --- Sidebar --- */
-/* Layout, Hintergrund, Scroll und Schatten */
 #sidebar { 
   width: 300px; 
   background: #FCF6EE; 
@@ -34,7 +30,30 @@ body {
   z-index: 1000; 
 }
 
-/* Logo Bereich oben in der Sidebar */
+/* Custom Scrollbar */
+#sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+
+#sidebar::-webkit-scrollbar-track {
+  background: #FCF6EE;
+}
+
+#sidebar::-webkit-scrollbar-thumb {
+  background: #DED0BA;
+  border-radius: 4px;
+}
+
+#sidebar::-webkit-scrollbar-thumb:hover {
+  background: #c9baa8;
+}
+
+/* Firefox Scrollbar */
+#sidebar {
+  scrollbar-color: #DED0BA #FCF6EE;
+  scrollbar-width: thin;
+}
+
 #sidebarLogo { 
   background: #212121; 
   text-align: center; 
@@ -48,17 +67,22 @@ body {
   margin: 0 auto; 
 }
 
-/* Farbquadrat und Delete-Button im Track Header */
+/* Track Abstand */
+.track { 
+  margin-bottom: 8px; 
+}
+
+/* Farbkreis und Delete-Button im Track Header */
 .colorIndicator,
 .track-header .deleteTrackBtn {
   width: 24px;
   height: 24px;
-  border-radius: 4px;
-  border: 1px solid #999;      
+  border-radius: 50%;
+  border: 2px solid #FCF6EE;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: 5px;            
+  flex-shrink: 0;
   box-sizing: border-box;
 }
 
@@ -66,48 +90,55 @@ body {
 .track-header .deleteTrackBtn {
   background: #FF6600;
   color: #fff;
-  border: 1px solid #999;
   font-weight: bold;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1;
-  margin: 0;
-  padding: 0;
+  padding: 0 !important;
+  margin: 0 !important;
+  margin-top: 0 !important;
   cursor: pointer;
+  transition: background 0.2s;
 }
 .track-header .deleteTrackBtn:hover {
   background: #cc5200;
 }
 
 /* --- Track Header & Name --- */
-/* Allgemeines Layout und Styling für Track Header */
 .track-header { 
   display: flex; 
   align-items: center; 
-  justify-content: center; /* Zentriert horizontal */
-  gap: 8px; /* Abstand zwischen Farbe & Button */
+  justify-content: flex-start;
+  gap: 12px;
   cursor: default; 
-  padding: 6px 10px; 
+  padding: 8px 12px;
   font-weight: bold; 
   background: #DED0BA; 
   border-bottom: 1px solid #ccc; 
   user-select: none; 
   border-radius: 6px; 
-  color: #000; 
+  color: #000;
+  transition: background 0.2s ease;
 }
 
-/* Hover-Effekte für Track Header */
-.track-header .toggleSymbol { color: #000; }
+.track-header .toggleSymbol { 
+  color: #000;
+  font-size: 16px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
 .track-header:hover { background: #7664AA; }
 .track-header:hover .toggleSymbol { color: #fff; }
 .track-header:hover .trackName:not(:focus) { color: #fff; }
 
-/* Track Name Eingabefeld */
 .trackName { 
   flex: 1; 
-  padding: 2px 4px; 
+  padding: 4px 6px; 
   border-radius: 4px; 
   background: transparent; 
-  color: #000; 
+  color: #000;
+  font-size: 14px;
+  font-weight: bold;
+  min-height: 20px;
 }
 .trackName:focus { 
   background: white; 
@@ -115,7 +146,6 @@ body {
   outline: 2px solid #FF6600; 
 }
 
-/* Standard Button Styling */
 button { 
   background: #FF6600; 
   color: white; 
@@ -124,13 +154,51 @@ button {
   padding: 6px 10px; 
   cursor: pointer; 
   margin-top: 6px; 
+  font-size: 13px;
+  transition: background 0.2s ease;
 }
 button:hover { background: #cc5200; }
+
+/* Primary Button (Track laden) */
+.loadBtn {
+  background: #FF6600;
+  transition: background 0.2s ease;
+}
+.loadBtn:hover {
+  background: #cc5200;
+}
+
+/* Secondary Button (Reset) */
+.resetBtn {
+  background: #7664AA;
+  color: white;
+  transition: background 0.2s ease;
+}
+.resetBtn:hover {
+  background: #5d4d8a;
+}
+
+/* Loading Animation für LoadBtn */
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+.loadBtn.loading {
+  animation: pulse 1s ease-in-out infinite;
+  pointer-events: none;
+}
 
 /* --- Track Body / Form Labels & Inputs --- */
 .track-body { 
   display: none; 
-  padding: 8px 10px; 
+  padding: 8px 10px;
+  background: #f5ede5;
+  border-radius: 0 0 6px 6px;
+  margin-top: -1px;
+  border: 2px solid #DED0BA;
+  border-top: none;
 }
 .track-body label { 
   display: block; 
@@ -138,7 +206,6 @@ button:hover { background: #cc5200; }
   margin-top: 4px; 
 }
 
-/* Inputfelder Styling */
 input[type="file"],
 input[type="time"],
 input[type="text"],
@@ -146,6 +213,21 @@ input[type="color"] {
   width: 100%;
   font-size: 14px;
   box-sizing: border-box;
+  font-family: 'Inter', sans-serif;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  transition: border-color 0.2s ease, outline-color 0.2s ease;
+}
+
+input[type="file"]:focus,
+input[type="time"]:focus,
+input[type="text"]:focus,
+input[type="color"]:focus {
+  outline: 2px solid #FF6600;
+  outline-offset: 2px;
+  border-color: #FF6600;
 }
 
 /* --- Map / Slider --- */
@@ -181,7 +263,6 @@ input[type="color"] {
   --slider-progress: 0%;
 }
 
-/* Chrome, Edge, Safari */
 #timeSlider::-webkit-slider-runnable-track {
   height: 6px;
   border-radius: 5px;
@@ -201,7 +282,6 @@ input[type="color"] {
 }
 #timeSlider::-webkit-slider-thumb:hover { background: #5d4d8a; }
 
-/* Firefox */
 #timeSlider::-moz-range-track {
   background: #DED0BA;
   height: 6px;
@@ -223,17 +303,13 @@ input[type="color"] {
 }
 #timeSlider::-moz-range-thumb:hover { background: #5d4d8a; }
 
-/* Zeit Label Styling */
 #timeLabel { min-width: 80px; font-weight: bold; }
 
-/* --- Leaflet Popups / Tooltips --- */
 .leaflet-popup-content, 
 .leaflet-tooltip { font-family: 'Inter', sans-serif; }
 
-/* --- Optional: Alle Texte im Akkordeon und Sidebar Input/Labels --- */
 .track-body * { font-family: 'Inter', sans-serif; }
 
-/* Monospaced Zahlen in Inputs für bessere Lesbarkeit */
 input[type="time"],
 input[type="text"] { font-variant-numeric: tabular-nums; }
 </style>
@@ -254,13 +330,10 @@ input[type="text"] { font-variant-numeric: tabular-nums; }
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
-// --- Karte ---
 const map = L.map('map').setView([49.9, 11.0],12);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ maxZoom:19, attribution:'© OpenStreetMap-Mitwirkende' }).addTo(map);
 
-// --- Slider Farbupdate (Chrome/Edge/Safari) ---
 const timeSlider = document.getElementById('timeSlider');
 if(timeSlider){
   const updateSliderColor = () => {
@@ -271,20 +344,19 @@ if(timeSlider){
   updateSliderColor();
 }
 
-// --- POIs ---
 const pois = [
-  { name:"Start und Ziel", coords:[49.91086414586559,11.008078342287886], description:"Start und Zielbereich Tanzwiesen Litzendorf" },
-  { name:"Brauerei Knoblach", coords:[49.92612562825621,11.006192497921718], description:"VP Brauerei Knoblach" },
-  { name:"Brauerei Hölzlein", coords:[49.916433164362154,11.044922412182059], description:"VP Brauerei Hölzlein" },
-  { name:"Brauerei Hönig", coords:[49.91854570624229,11.074094351945764], description:"VP Brauerei Hönig" },
-  { name:"Brauerei Reh", coords:[49.9161925538902,11.050437379307478], description:"VP Brauerei Reh" },
-  { name:"Brauerei Brandholz", coords:[49.89962613596553,11.031593469565935], description:"VP Brauerei Brandholz" },
-  { name:"Landgasthof Büttel", coords:[49.88168405246902,11.01294568627889], description:"VP Landgasthof Büttel" },
-  { name:"Gasthof Schiller", coords:[49.85771626727418,11.005281650520448], description:"VP Gasthof Schiller" },
-  { name:"Schwanenkeller", coords:[49.851879458949746,10.97576017952508], description:"VP Schwanenkeller" },
-  { name:"Brauerei Sauer", coords:[49.867831104839176,10.996951685705579], description:"VP Brauerei Sauer" },
-  { name:"Regnitztaler Alm", coords:[49.88765943343463, 10.981377141550507], description:"VP Regnitztaler Alm" },
-  { name:"Kunigundenruh", coords:[49.903828616877256,10.960579372597097], description:"VP Kunigundenruh" }
+  { name:"Start und Ziel", coords:[49.91086414586559,11.008078342287886], description:"Start und Zielbereich Tanzwiesen Litzendorf", logo:"icons/Start.jpg" },
+  { name:"Brauerei Knoblach", coords:[49.92612562825621,11.006192497921718], description:"VP Brauerei Knoblach", logo:"icons/Knoblach.jpg" },
+  { name:"Brauerei Hölzlein", coords:[49.916433164362154,11.044922412182059], description:"VP Brauerei Hölzlein", logo:"icons/Hölzlein.jpg" },
+  { name:"Brauerei Hönig", coords:[49.91854570624229,11.074094351945764], description:"VP Brauerei Hönig", logo:"icons/Hönig.png" },
+  { name:"Brauerei Reh", coords:[49.9161925538902,11.050437379307478], description:"VP Brauerei Reh", logo:"icons/Reh.png" },
+  { name:"Brauerei Brandholz", coords:[49.89962613596553,11.031593469565935], description:"VP Brauerei Brandholz", logo:"icons/Brandholz.jpg" },
+  { name:"Landgasthof Büttel", coords:[49.88168405246902,11.01294568627889], description:"VP Landgasthof Büttel", logo:"icons/Büttel.jpg" },
+  { name:"Gasthof Schiller", coords:[49.85771626727418,11.005281650520448], description:"VP Gasthof Schiller", logo:"icons/Schiller.jpg" },
+  { name:"Schwanenkeller", coords:[49.851879458949746,10.97576017952508], description:"VP Schwanenkeller", logo:"icons/Hopfen.jpg" },
+  { name:"Brauerei Sauer", coords:[49.867831104839176,10.996951685705579], description:"VP Brauerei Sauer", logo:"icons/Sauer.png" },
+  { name:"Regnitztaler Alm", coords:[49.88765943343463, 10.981377141550507], description:"VP Regnitztaler Alm", logo:"icons/Hopfen.jpg" },
+  { name:"Kunigundenruh", coords:[49.903828616877256,10.960579372597097], description:"VP Kunigundenruh", logo:"icons/Hopfen.jpg" }
 ];
 
 const poiIcon = L.icon({
@@ -294,7 +366,6 @@ const poiIcon = L.icon({
   popupAnchor: [0,-32]
 });
 
-// --- Neue Icons für Läufer ---
 const fastRunnerIcon = L.icon({
   iconUrl: 'icons/brauereienlauf_gestaltungselemente_maennchen_gruen_rgb.svg',
   iconSize: [24, 24],
@@ -309,16 +380,13 @@ const slowRunnerIcon = L.icon({
   popupAnchor: [0, -12]
 });
 
-// --- Tracks ---
 let tracks=[];
 const predefinedColors=["#36542C","#FF6600","#7664AA","#212121","#DED0BA"];
 let colorIndex=0;
 
-// --- Slider ---
 const slider=document.getElementById("timeSlider");
 const timeLabel=document.getElementById("timeLabel");
 
-// --- Helperfunktionen ---
 function parsePace(p){ if(!p || p==="--:--") return null; const parts=p.split(":").map(Number); if(parts.length===1) return parts[0]*60; return parts[0]*60+parts[1]; }
 function paceToMetersPerMinute(p){ const sec=parsePace(p); if(sec===null||sec===0) return null; return 1000/(sec/60); }
 function totalLength(latlngs){ let d=0; for(let i=1;i<latlngs.length;i++) d+=latlngs[i-1].distanceTo(latlngs[i]); return d; }
@@ -329,15 +397,14 @@ function minutesToTime(m){ const h=Math.floor(m/60); const mm=m%60; return `${h.
 
 function showDistancesToPoi(poi, marker){
   const poiLatLng = L.latLng(poi.coords);
-  let info = `<b>${poi.name}</b><br>${poi.description}<hr>`;
+  const logoImg = poi.logo ? `<div style="text-align: center; margin-top: -50px; margin-bottom: 10px;"><img src="${poi.logo}" style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid #DED0BA; background: #FCF6EE; box-shadow: 0 2px 8px rgba(0,0,0,0.15); object-fit: cover;"></div>` : '';
+  let info = `${logoImg}<b>${poi.name}</b><br>${poi.description}<hr>`;
   let hasRunner = false;
 
-  // Alle aktuell in der Sidebar geladenen Tracks durchgehen
   document.querySelectorAll("#trackList .track").forEach(trackDiv => {
     const track = trackDiv.trackObj;
     if(!track || !track.trackPoints || !track.startTime || !track.endTime || !track.fastSpeed || !track.slowSpeed) return;
 
-    // Aktuellen Namen aus Sidebar holen (dynamisch)
     const trackNameEl = trackDiv.querySelector(".trackName");
     const trackName = trackNameEl ? trackNameEl.innerText.trim() || "Neue Strecke" : "Neue Strecke";
 
@@ -377,7 +444,6 @@ pois.forEach(poi=>{
   marker.on("click",()=>showDistancesToPoi(poi,marker));
 });
 
-// --- Slider & Update ---
 function updateSliderRange(){
   const validTracks=tracks.filter(t=>t.startTime && t.endTime);
   if(validTracks.length===0){ document.getElementById("sliderContainer").style.display="none"; return; }
@@ -393,7 +459,6 @@ function updateSliderRange(){
 let animationFrame=null;
 slider.addEventListener("input",()=>{ if(animationFrame) cancelAnimationFrame(animationFrame); animationFrame=requestAnimationFrame(updateMarkers); });
 
-// --- Glättungsfunktion für den roten Abschnitt ---
 function smoothPolyline(points, iterations = 2) {
   for (let k = 0; k < iterations; k++) {
     const newPoints = [];
@@ -415,7 +480,6 @@ function smoothPolyline(points, iterations = 2) {
   return points;
 }
 
-// --- Aktualisierung der Läufer-Positionen und roten Linie ---
 function updateMarkers() {
   const currentMin = Number(slider.value);
   timeLabel.innerText = minutesToTime(currentMin);
@@ -453,7 +517,7 @@ function updateMarkers() {
     );
 
     if (subPoints.length > 1) {
-      const smoothPoints = smoothPolyline(subPoints, 2); // 🔹 2 = leicht geglättet
+      const smoothPoints = smoothPolyline(subPoints, 2);
       track.redSegment = L.polyline(smoothPoints, {
         color: "red",
         weight: 6,
@@ -463,7 +527,6 @@ function updateMarkers() {
   });
 }
 
-// --- Pace Mask Helper ---
 function initPaceField(input){
   input.value="--:--";
   input.addEventListener("focus",()=>{ if(input.value==="--:--") input.value=""; });
@@ -471,12 +534,10 @@ function initPaceField(input){
   input.addEventListener("input",()=>{ let val=input.value.replace(/\D/g,'').slice(0,4); if(val.length>2) val=val.slice(0,2)+":"+val.slice(2); input.value=val; });
 }
 
-// --- Trackname Default-Text Helper ---
 function initTrackName(trackNameEl){
   const DEFAULT_TRACK_NAME = "Neue Strecke";
   trackNameEl.innerText = DEFAULT_TRACK_NAME;
 
-  // Fokus auf Trackname
   trackNameEl.addEventListener("focus", () => {
     if(trackNameEl.innerText === DEFAULT_TRACK_NAME){
       trackNameEl.innerText = "";
@@ -489,7 +550,6 @@ function initTrackName(trackNameEl){
     }
   });
 
-  // Blur → Default wieder setzen und TrackObj updaten
   trackNameEl.addEventListener("blur", () => {
     if(trackNameEl.innerText.trim() === "") trackNameEl.innerText = DEFAULT_TRACK_NAME;
     if(trackNameEl.parentElement.trackObj) {
@@ -497,15 +557,13 @@ function initTrackName(trackNameEl){
     }
   });
 
-  // Enter → Fokus entfernen, Name übernehmen
   trackNameEl.addEventListener("keydown", (e) => {
     if(e.key === "Enter") {
-      e.preventDefault();   // verhindert Zeilenumbruch
-      trackNameEl.blur();   // wie Klick außerhalb → Name bestätigen
+      e.preventDefault();
+      trackNameEl.blur();
     }
   });
 
-  // Live-Update für POI-Popups beim Tippen
   trackNameEl.addEventListener("input", () => {
     if(trackNameEl.parentElement.trackObj) {
       trackNameEl.parentElement.trackObj.name = trackNameEl.innerText.trim();
@@ -523,10 +581,10 @@ function addTrackForm() {
 
   trackDiv.innerHTML = `
     <div class="track-header">
-      <span class="toggleSymbol">&#9660;</span>
+      <span class="toggleSymbol">▼</span>
       <span class="trackName" contenteditable="true">Neue Strecke</span>
       <div class="colorIndicator" style="background:${color}"></div>
-      <button class="deleteTrackBtn">X</button>
+      <button class="deleteTrackBtn">✕</button>
     </div>
     <div class="track-body">
       <label>Trackfarbe: <input type="color" class="trackColor" value="${color}"></label>
@@ -550,27 +608,20 @@ function addTrackForm() {
   const colorIndicator = trackDiv.querySelector(".colorIndicator");
   const trackNameEl = trackDiv.querySelector(".trackName");
 
-  // --- Trackname Feature integrieren ---
   initTrackName(trackNameEl);
-
-  // --- Pace Inputs vorbereiten ---
   initPaceField(trackDiv.querySelector(".fastPace"));
   initPaceField(trackDiv.querySelector(".slowPace"));
 
-  // --- Akkordeon nur über Pfeil ---
   toggle.addEventListener("click", (e) => {
     e.stopPropagation();
     const isOpen = trackDiv.classList.toggle("open");
     body.style.display = isOpen ? "block" : "none";
-    toggle.innerHTML = isOpen ? "&#9660;" : "&#9654;";
+    toggle.innerHTML = isOpen ? "▼" : "▶";
   });
 
-  // --- Standardmäßig ausgeklappt ---
   trackDiv.classList.add("open");
   body.style.display = "block";
-  toggle.innerHTML = "&#9660;";
 
-  // --- Delete Button ---
   deleteBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     if (trackDiv.trackObj) {
@@ -582,7 +633,6 @@ function addTrackForm() {
     trackDiv.remove();
     updateSliderRange();
 
-    // Farben der verbleibenden Tracks anpassen
     const allTracks = document.querySelectorAll("#trackList .track");
     allTracks.forEach((div,i) => {
       const newColor = predefinedColors[i % predefinedColors.length];
@@ -597,16 +647,20 @@ function addTrackForm() {
     });
   });
 
-  // --- Farbe ändern ---
   colorPicker.addEventListener("input", () => {
     colorIndicator.style.background = colorPicker.value;
     if(trackDiv.trackObj?.fullTrackLayer) trackDiv.trackObj.fullTrackLayer.setStyle({color: colorPicker.value});
   });
 
-  // --- Track laden ---
-  trackDiv.querySelector(".loadBtn").addEventListener("click", () => loadTrack(trackDiv));
+  trackDiv.querySelector(".loadBtn").addEventListener("click", () => {
+    const loadBtn = trackDiv.querySelector(".loadBtn");
+    loadBtn.classList.add("loading");
+    loadTrack(trackDiv);
+    setTimeout(() => {
+      loadBtn.classList.remove("loading");
+    }, 1000);
+  });
 
-  // --- Reset ---
   trackDiv.querySelector(".resetBtn").addEventListener("click", () => {
     trackDiv.querySelector(".startTime").value = "";
     trackDiv.querySelector(".endTime").value = "";
@@ -630,13 +684,11 @@ function addTrackForm() {
 }
 
 function loadTrack(trackDiv) {
-  // --- Offset pro Track, damit sich GPX-Tracks nicht exakt überlagern ---
   const existingTracks = document.querySelectorAll("#trackList .track");
-  const trackIndex = existingTracks.length; // aktueller Track-Index
-  const OFFSET_METERS = 10; // fester Abstand in Metern zwischen den Tracks
-  const offsetAngle = (trackIndex - 1) * 30; // unterschiedliche Richtung pro Track (in Grad)
+  const trackIndex = existingTracks.length;
+  const OFFSET_METERS = 10;
+  const offsetAngle = (trackIndex - 1) * 30;
 
-  // Umrechnung Meter → Grad (ungefähr für mitteleuropäische Breiten)
   const dLat = (OFFSET_METERS / 111320) * Math.cos(offsetAngle * Math.PI / 180);
   const dLng = (OFFSET_METERS / (111320 * Math.cos(49.9 * Math.PI / 180))) * Math.sin(offsetAngle * Math.PI / 180);
 
@@ -664,7 +716,6 @@ function loadTrack(trackDiv) {
       return;
     }
 
-    // 🔹 Hier werden die Koordinaten leicht versetzt
     const latlngs = Array.from(nodes).map(n =>
       L.latLng(
         parseFloat(n.getAttribute("lat")) + dLat,
@@ -691,25 +742,16 @@ function loadTrack(trackDiv) {
       slowSpeed: slowPaceVal && slowPaceVal !== "--:--" ? paceToMetersPerMinute(slowPaceVal) : null
     };
 
-    // --- Volle Strecke auf Karte ---
     trackObj.fullTrackLayer = L.polyline(latlngs, { color, weight: 4 }).addTo(map);
-
-    // --- Läufer-Marker hinzufügen ---
     trackObj.fastMarker = L.marker(latlngs[0], { icon: fastRunnerIcon }).addTo(map);
     trackObj.slowMarker = L.marker(latlngs[0], { icon: slowRunnerIcon }).addTo(map);
 
-    // TrackObj an TrackDiv binden
     trackDiv.trackObj = trackObj;
     trackObj.name = trackDiv.querySelector(".trackName").innerText.trim();
     trackDiv.querySelector(".trackName").dataset.trackId = trackObj.id;
 
-    // Track zu globalem Array hinzufügen
     tracks.push(trackObj);
-
-    // Slider aktualisieren
     updateSliderRange();
-
-    // Karte auf Track zentrieren
     map.fitBounds(trackObj.fullTrackLayer.getBounds());
   };
 
