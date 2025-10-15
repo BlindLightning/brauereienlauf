@@ -16,6 +16,96 @@ body {
   overflow: hidden; 
 }
 
+/* Hamburger Menu Button */
+#hamburger {
+  display: none;
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 1001;
+  background: #FF6600;
+  border: none;
+  color: white;
+  font-size: 24px;
+  width: 44px;
+  height: 44px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+#hamburger:hover {
+  background: #cc5200;
+}
+
+/* Mobile Styles */
+@media (max-width: 1024px) {
+  body {
+    flex-direction: column;
+  }
+
+  #hamburger {
+    display: block;
+  }
+
+  #sidebar {
+    position: fixed;
+    left: -340px;
+    top: 0;
+    width: 300px;
+    height: 100vh;
+    transition: left 0.3s ease;
+    z-index: 1000;
+  }
+
+  #sidebar.open {
+    left: 0;
+  }
+
+  #map {
+    width: 100% !important;
+    height: 100%;
+    flex: 1;
+  }
+
+  #sliderContainer {
+    left: 0 !important;
+    height: auto;
+    padding: 15px;
+  }
+
+  #timeSlider {
+    height: 8px;
+  }
+
+  #timeSlider::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+    margin-top: -8px;
+  }
+
+  #timeSlider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+  }
+
+  #timeLabel {
+    font-size: 16px;
+  }
+}
+
+/* Desktop Styles */
+@media (min-width: 1025px) {
+  #hamburger {
+    display: none;
+  }
+
+  #sidebar {
+    position: relative;
+    left: 0 !important;
+  }
+}
+
 /* --- Sidebar --- */
 #sidebar { 
   width: 300px; 
@@ -316,6 +406,8 @@ input[type="text"] { font-variant-numeric: tabular-nums; }
 </head>
 <body>
 
+<button id="hamburger">☰</button>
+
 <div id="sidebar">
   <div id="sidebarLogo"><img src="icons/brauereienlauf-sued-logo.svg" alt="Brauereienlauf Logo"></div>
   <button id="addTrackBtn">Strecke hinzufügen</button>
@@ -422,14 +514,25 @@ function showDistancesToPoi(poi, marker){
       distSoFar += segDist;
     }
 
-    if(closestDist > 30) return;
+    if(closestDist > 40) return;
     hasRunner = true;
 
     const tStart = timeToMinutes(track.startTime);
-    const fastArrival = minutesToTime(Math.floor(tStart + distAlongTrack / track.fastSpeed));
-    const slowArrival = minutesToTime(Math.floor(tStart + distAlongTrack / track.slowSpeed));
-
-    info += `<b>${trackName}</b><br>Erster Läufer: ${fastArrival} Uhr<br>Letzter Läufer: ${slowArrival} Uhr<br><br>`;
+    const tEnd = timeToMinutes(track.endTime);
+    
+    // Für "Start und Ziel" POI: Endzeiten berechnen (Startzeit + gesamte Strecke / Pace)
+    let fastArrival, slowArrival;
+    if(poi.name === "Start und Ziel") {
+      const fastEndTime = minutesToTime(Math.floor(tStart + track.totalDist / track.fastSpeed));
+      const slowEndTime = minutesToTime(Math.floor(tStart + track.totalDist / track.slowSpeed));
+      fastArrival = fastEndTime;
+      slowArrival = slowEndTime;
+      info += `<b>${trackName}</b><br>Ankunft schnellster: ${fastArrival} Uhr<br>Ankunft langsamster: ${slowArrival} Uhr<br><br>`;
+    } else {
+      fastArrival = minutesToTime(Math.floor(tStart + distAlongTrack / track.fastSpeed));
+      slowArrival = minutesToTime(Math.floor(tStart + distAlongTrack / track.slowSpeed));
+      info += `<b>${trackName}</b><br>Erster Läufer: ${fastArrival} Uhr<br>Letzter Läufer: ${slowArrival} Uhr<br><br>`;
+    }
   });
 
   if(!hasRunner) info += "Keine Strecke führt hier vorbei.";
@@ -759,6 +862,26 @@ function loadTrack(trackDiv) {
 }
 
 document.getElementById("addTrackBtn").addEventListener("click",addTrackForm);
+
+// Hamburger Menu Funktionalität - NACH Map initialisierung
+document.addEventListener("DOMContentLoaded", () => {
+  const hamburger = document.getElementById("hamburger");
+  const sidebar = document.getElementById("sidebar");
+
+  if(hamburger && sidebar) {
+    hamburger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      sidebar.classList.toggle("open");
+    });
+
+    // Sidebar schließen nur wenn auf die Karte klickt wird (nicht auf Sidebar)
+    document.getElementById("map").addEventListener("click", () => {
+      if(window.innerWidth <= 1024) {
+        sidebar.classList.remove("open");
+      }
+    });
+  }
+});
 </script>
 </body>
 </html>
